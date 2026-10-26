@@ -6,8 +6,10 @@
     "dev": "node --env-file=../.env --watch src/server.ts",
     "start": "node src/server.ts",
     "typecheck": "tsc",
-    "test": "vitest run",
-    "migrate": "node --env-file=../.env src/db/migrate.ts"
+    "test": "vitest run --exclude \"test/db/**\"",
+    "test:db": "node --env-file=../.env node_modules/vitest/vitest.mjs run test/db --no-file-parallelism --test-timeout=30000",
+    "migrate": "node --env-file=../.env src/db/migrate.ts",
+    "seed": "node --env-file=../.env src/db/seed.ts"
   },
   "type": "module",
   "dependencies": {
