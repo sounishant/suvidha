@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { readEnv } from "../src/config.ts";
+import { runBookingFlow } from "./booking-flow.ts";
 import { runWebhookChecks } from "./webhook-checks.ts";
 
 const env = readEnv(
@@ -14,7 +15,8 @@ const env = readEnv(
 );
 
 console.log(`Simulating against ${env.SIM_BASE_URL}\n`);
-const checks = await runWebhookChecks({ baseUrl: env.SIM_BASE_URL, secrets: env });
+const target = { baseUrl: env.SIM_BASE_URL, secrets: env };
+const checks = [...(await runWebhookChecks(target)), ...(await runBookingFlow(target))];
 for (const c of checks) console.log(`${c.pass ? "PASS" : "FAIL"}  ${c.name}${c.pass ? "" : `  (got ${c.detail})`}`);
 
 const failed = checks.filter((c) => !c.pass).length;

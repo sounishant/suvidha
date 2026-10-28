@@ -1,6 +1,7 @@
 import type { AddressInfo } from "node:net";
 import { createApp, type AppDeps } from "../src/app.ts";
 import type { SaveWebhook, WebhookEntry } from "../src/http/webhook-log.ts";
+import type { Services } from "../src/services.ts";
 
 export const secrets = {
   BOLNA_FUNCTION_TOKEN: "test-function-token-0123456789",
@@ -25,10 +26,51 @@ export function memoryWebhookLog() {
   return { entries, save };
 }
 
+// Records what each route passed to the core and answers with fixed replies.
+export function stubServices() {
+  const calls: { name: keyof Services; input: unknown }[] = [];
+  const record = <T>(name: keyof Services, reply: T) => async (input: unknown) => {
+    calls.push({ name, input });
+    return reply;
+  };
+  const services: Services = {
+    lookupCustomer: record("lookupCustomer", { call_type: "inbound", caller_ref: "C7Q4" }),
+    lookupWorker: record("lookupWorker", { call_type: "inbound", caller_ref: "W7Q4" }),
+    registerWorker: record("registerWorker", { ok: true as const }),
+    callStatus: record("callStatus", undefined),
+    whatsappEvent: record("whatsappEvent", undefined),
+  };
+  return { services, calls };
+}
+
+// Collects work the routes push past the reply, so tests can wait for it.
+export function backgroundTasks() {
+  const pending: Promise<void>[] = [];
+  return {
+    run: (task: () => Promise<void>) => {
+      pending.push(task());
+    },
+    settle: async () => {
+      while (pending.length) await pending.shift();
+    },
+  };
+}
+
 export function startApp(overrides: Partial<AppDeps> = {}) {
   const log = memoryWebhookLog();
-  const app = createApp({ pingDb: async () => 1, version: "test", secrets, saveWebhook: log.save, ...overrides });
+  const stub = stubServices();
+  const background = backgroundTasks();
+  const app = createApp({
+    pingDb: async () => 1,
+    version: "test",
+    secrets,
+    saveWebhook: log.save,
+    services: stub.services,
+    background: background.run,
+    log: () => {},
+    ...overrides,
+  });
   const server = app.listen(0);
   const { port } = server.address() as AddressInfo;
-  return { url: `http://127.0.0.1:${port}`, log, close: () => server.close() };
+  return { url: `http://127.0.0.1:${port}`, log, calls: stub.calls, settle: background.settle, close: () => server.close() };
 }

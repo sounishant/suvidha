@@ -21,7 +21,7 @@ async function call(target: Target, path: string, init: { body?: object | string
   return { status: res.status, text };
 }
 
-// Lookups and functions answer 501 until their handlers exist; these checks cover auth, logging and dedup.
+// Auth, logging and dedup on every endpoint; booking-flow.ts covers what the endpoints do.
 export async function runWebhookChecks(target: Target): Promise<Check[]> {
   const { secrets } = target;
   const bearer = { authorization: `Bearer ${secrets.BOLNA_FUNCTION_TOKEN}` };
@@ -42,25 +42,25 @@ export async function runWebhookChecks(target: Target): Promise<Check[]> {
   expect("health answers", await call(target, "/health"), 200);
 
   expect("customer lookup without token is refused", await call(target, "/bolna/lookup/customer?contact_number=%2B919876543210"), 401);
-  expect("customer lookup with token is logged", await call(target, "/bolna/lookup/customer?contact_number=%2B919876543210", { headers: bearer }), 501);
-  expect("worker lookup with token is logged", await call(target, "/bolna/lookup/worker?contact_number=%2B919812345678", { headers: bearer }), 501);
+  expect("customer lookup with token is answered", await call(target, `/bolna/lookup/customer?contact_number=%2B911000000000&execution_id=${randomUUID()}`, { headers: bearer }), 200);
+  expect("worker lookup with token is answered", await call(target, `/bolna/lookup/worker?contact_number=%2B911000000000&execution_id=${randomUUID()}`, { headers: bearer }), 200);
 
-  const job = payloads.createJob();
-  expect("create_job with a wrong token is refused", await call(target, "/bolna/fn/create_job", { body: job, headers: { authorization: "Bearer wrong" } }), 401);
-  expect("create_job is logged", await call(target, "/bolna/fn/create_job", { body: job, headers: bearer }), 501);
-  expect("create_job retry in the same call is not dropped", await call(target, "/bolna/fn/create_job", { body: job, headers: bearer }), 501);
+  const join = payloads.registerWorker();
+  expect("register_worker with a wrong token is refused", await call(target, "/bolna/fn/register_worker", { body: join, headers: { authorization: "Bearer wrong" } }), 401);
+  expect("register_worker is answered", await call(target, "/bolna/fn/register_worker", { body: join, headers: bearer }), 200);
+  expect("register_worker retry in the same call is not dropped", await call(target, "/bolna/fn/register_worker", { body: join, headers: bearer }), 200);
 
   const callId = randomUUID();
   for (const status of ["ringing", "in-progress", "completed"]) {
-    expect(`call webhook '${status}' is logged`, await call(target, "/bolna/webhook", { body: payloads.bolnaCallStatus(callId, status), headers: hookToken }), 200, '{"ok":true}');
+    expect(`call webhook '${status}' is logged`, await call(target, "/bolna/webhook/call", { body: payloads.bolnaCallStatus(callId, status), headers: hookToken }), 200, '{"ok":true}');
   }
-  expect("call webhook repeat is ignored", await call(target, "/bolna/webhook", { body: payloads.bolnaCallStatus(callId, "completed"), headers: hookToken }), 200, '{"ok":true,"duplicate":true}');
-  expect("call webhook with a wrong token is refused", await call(target, "/bolna/webhook", { body: payloads.bolnaCallStatus(callId, "failed"), headers: { "x-suvidha-token": "wrong" } }), 401);
+  expect("call webhook repeat is ignored", await call(target, "/bolna/webhook/call", { body: payloads.bolnaCallStatus(callId, "completed"), headers: hookToken }), 200, '{"ok":true,"duplicate":true}');
+  expect("call webhook with a wrong token is refused", await call(target, "/bolna/webhook/call", { body: payloads.bolnaCallStatus(callId, "failed"), headers: { "x-suvidha-token": "wrong" } }), 401);
 
-  const tap = signed(payloads.confirmTap(randomUUID()));
-  expect("WhatsApp Confirm tap is logged", await call(target, "/whatsapp/webhook", tap), 200, '{"ok":true}');
+  const tap = signed(payloads.textReply("Kal subah tak"));
+  expect("WhatsApp reply is logged", await call(target, "/whatsapp/webhook", tap), 200, '{"ok":true}');
   expect("WhatsApp retry of the same message is ignored", await call(target, "/whatsapp/webhook", tap), 200, '{"ok":true,"duplicate":true}');
-  expect("WhatsApp offer accept is logged", await call(target, "/whatsapp/webhook", signed(payloads.offerAccept(randomUUID(), 20))), 200, '{"ok":true}');
+  expect("WhatsApp shortlist tap is logged", await call(target, "/whatsapp/webhook", signed(payloads.bookTap("ZZZZ"))), 200, '{"ok":true}');
   expect("WhatsApp event with a forged signature is refused", await call(target, "/whatsapp/webhook", { body: tap.body, headers: { "x-hub-signature-256": "sha256=forged" } }), 401);
 
   const verify = (token: string) => `/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=${encodeURIComponent(token)}&hub.challenge=4242`;

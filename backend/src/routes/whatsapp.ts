@@ -1,8 +1,17 @@
 import express from "express";
 import { requireWhatsAppSignature, sameSecret } from "../http/auth.ts";
 import { logWebhook, whatsappIds, type SaveWebhook } from "../http/webhook-log.ts";
+import type { Services } from "../services.ts";
 
-export function whatsappRouter(deps: { appSecret: string; verifyToken: string; saveWebhook: SaveWebhook }) {
+type Deps = {
+  appSecret: string;
+  verifyToken: string;
+  saveWebhook: SaveWebhook;
+  services: Services;
+  background: (task: () => Promise<void>) => void;
+};
+
+export function whatsappRouter(deps: Deps) {
   const router = express.Router();
 
   // Meta's one-time handshake when the webhook URL is registered.
@@ -20,8 +29,9 @@ export function whatsappRouter(deps: { appSecret: string; verifyToken: string; s
     express.raw({ type: () => true, limit: "2mb" }),
     requireWhatsAppSignature(deps.appSecret),
     logWebhook(deps.saveWebhook, "whatsapp", whatsappIds),
-    (_req, res) => {
+    (req, res) => {
       res.json({ ok: true });
+      deps.background(() => deps.services.whatsappEvent(req.body));
     },
   );
 
