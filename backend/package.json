@@ -10,7 +10,8 @@
     "test:db": "node --env-file=../.env node_modules/vitest/vitest.mjs run test/db --no-file-parallelism --test-timeout=30000",
     "migrate": "node --env-file=../.env src/db/migrate.ts",
     "seed": "node --env-file=../.env src/db/seed.ts",
-    "sim": "node --env-file=../.env simulator/run.ts"
+    "sim": "node --env-file=../.env simulator/run.ts",
+    "create-photo-bucket": "node --env-file=../.env src/ops/create-photo-bucket.ts"
   },
   "type": "module",
   "dependencies": {
