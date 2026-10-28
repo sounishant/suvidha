@@ -8,6 +8,25 @@ const Env = z.object({
   BOLNA_WEBHOOK_TOKEN: z.string().min(16),
   WHATSAPP_APP_SECRET: z.string().min(1),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
+  TICK_SEC: z.coerce.number().positive().default(3),
+  INVITE_DELAY_SEC: z.coerce.number().int().nonnegative().default(60),
+  PARALLEL_CALLS: z.coerce.number().int().positive().default(2),
+  MAX_WORKER_CALLS: z.coerce.number().int().positive().default(6),
+  QUOTES_WANTED: z.coerce.number().int().positive().default(3),
+  CALL_TIMEOUT_SEC: z.coerce.number().int().positive().default(300),
+  EXTRACTION_WAIT_SEC: z.coerce.number().int().positive().default(120),
+  // Outbound keys arrive with the phone numbers; until then the clients only log.
+  BOLNA_API_KEY: z.string().optional(),
+  BOLNA_AGENT_ID_CUSTOMER: z.string().optional(),
+  BOLNA_CUSTOMER_LINE_NUMBER: z.string().optional(),
+  BOLNA_AGENT_ID_WORKER: z.string().optional(),
+  BOLNA_WORKER_LINE_NUMBER: z.string().optional(),
+  GOOGLE_MAPS_API_KEY: z.string().optional(),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_API_VERSION: z.string().default("v26.0"),
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 });
 
 export type Config = z.infer<typeof Env>;
