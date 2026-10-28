@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "description": "Suvidha backend",
   "scripts": {
-    "dev": "node --env-file=../.env --watch src/server.ts",
+    "dev": "node --env-file-if-exists=../.env --watch src/server.ts",
     "start": "node src/server.ts",
     "typecheck": "tsc",
     "test": "vitest run --exclude \"test/db/**\"",
-    "test:db": "node --env-file=../.env node_modules/vitest/vitest.mjs run test/db --no-file-parallelism --test-timeout=30000",
-    "migrate": "node --env-file=../.env src/db/migrate.ts",
-    "seed": "node --env-file=../.env src/db/seed.ts",
-    "sim": "node --env-file=../.env simulator/run.ts",
-    "create-photo-bucket": "node --env-file=../.env src/ops/create-photo-bucket.ts"
+    "test:db": "node --env-file-if-exists=../.env node_modules/vitest/vitest.mjs run test/db --no-file-parallelism --test-timeout=30000",
+    "migrate": "node --env-file-if-exists=../.env src/db/migrate.ts",
+    "seed": "node --env-file-if-exists=../.env src/db/seed.ts",
+    "sim": "node --env-file-if-exists=../.env simulator/run.ts",
+    "create-photo-bucket": "node --env-file-if-exists=../.env src/ops/create-photo-bucket.ts"
   },
   "type": "module",
   "dependencies": {
