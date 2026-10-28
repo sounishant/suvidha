@@ -30,7 +30,7 @@ export async function migrate(sql: Sql, log: (line: string) => void = () => {}) 
 
 if (import.meta.main) {
   const { DATABASE_URL } = readEnv(z.object({ DATABASE_URL: z.string().min(1) }), process.env);
-  const sql = postgres(DATABASE_URL);
+  const sql = postgres(DATABASE_URL, { onnotice: () => {} });
   await migrate(sql, console.log);
   await sql.end();
 }

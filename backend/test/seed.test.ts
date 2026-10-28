@@ -1,35 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { DemoPhones, RATE_CARD, seedStats, seedWorkers } from "../src/db/seed.ts";
+import { skillsFor } from "../src/core/catalogue.ts";
+import { DemoPhones, seedStats, seedWorkers } from "../src/db/seed.ts";
 
 const phones = ["+919000000001", "+919000000002", "+919000000003"];
-
-describe("rate card", () => {
-  it("has exactly one visit charge per trade", () => {
-    const visits = RATE_CARD.filter((r) => r.price_kind === "visit").map((r) => r.trade);
-    expect(visits.sort()).toEqual(["carpenter", "electrician", "plumber"]);
-    expect(RATE_CARD.filter((r) => r.price_kind === "visit").every((r) => r.job_type === "unclear")).toBe(true);
-  });
-
-  it("has no duplicate (trade, job type) keys", () => {
-    const keys = RATE_CARD.map((r) => `${r.trade}:${r.job_type}`);
-    expect(new Set(keys).size).toBe(keys.length);
-  });
-});
 
 describe("seed workers", () => {
   it("seeds Nishant, Kalpana and Sanskar on the demo phones in order", () => {
     const workers = seedWorkers(phones);
-    expect(workers.map((w) => [w.name, w.trade, w.phone])).toEqual([
-      ["Nishant", "electrician", "+919000000001"],
-      ["Kalpana", "plumber", "+919000000002"],
-      ["Sanskar", "carpenter", "+919000000003"],
+    expect(workers.map((w) => [w.name, w.trades, w.phone])).toEqual([
+      ["Nishant", ["electrician"], "+919000000001"],
+      ["Kalpana", ["plumber"], "+919000000002"],
+      ["Sanskar", ["carpenter"], "+919000000003"],
     ]);
   });
 
-  it("gives each worker only fixed-price skills of their own trade and passes the dispatch rating cutoff", () => {
+  it("gives each worker every task of their trade and passes the dispatch rating cutoff", () => {
     for (const w of seedWorkers(phones)) {
-      const tradeJobs = RATE_CARD.filter((r) => r.trade === w.trade && r.price_kind === "fixed").map((r) => r.job_type);
-      expect(w.skills).toEqual(tradeJobs);
+      expect(w.skills).toEqual(skillsFor(w.trades[0]!));
       expect(w.rating).toBeGreaterThanOrEqual(3.8);
     }
   });

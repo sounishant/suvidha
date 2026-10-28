@@ -1,35 +1,7 @@
 import postgres, { type Sql } from "postgres";
 import { z } from "zod";
 import { readEnv } from "../config.ts";
-
-export type Trade = "plumber" | "electrician" | "carpenter";
-type RateCardRow = { trade: Trade; job_type: string; label: string; price_inr: number; price_kind: "fixed" | "visit" };
-
-// Placeholder Roorkee prices (labour only, materials extra); see docs/spec.md §3.
-export const RATE_CARD: RateCardRow[] = [
-  { trade: "plumber", job_type: "tap_replace", label: "Tap replacement", price_inr: 200, price_kind: "fixed" },
-  { trade: "plumber", job_type: "washbasin_install", label: "Washbasin installation", price_inr: 450, price_kind: "fixed" },
-  { trade: "plumber", job_type: "flush_tank_repair", label: "Flush tank repair", price_inr: 300, price_kind: "fixed" },
-  { trade: "plumber", job_type: "pipe_leak_repair", label: "Small pipe leak repair", price_inr: 350, price_kind: "fixed" },
-  { trade: "plumber", job_type: "drain_unblock", label: "Drain / sink unblocking", price_inr: 400, price_kind: "fixed" },
-  { trade: "plumber", job_type: "unclear", label: "Visit charge", price_inr: 150, price_kind: "visit" },
-  { trade: "electrician", job_type: "fan_install", label: "Ceiling fan installation", price_inr: 250, price_kind: "fixed" },
-  { trade: "electrician", job_type: "switchboard_repair", label: "Switchboard repair", price_inr: 200, price_kind: "fixed" },
-  { trade: "electrician", job_type: "light_fitting", label: "Light / tube fitting", price_inr: 150, price_kind: "fixed" },
-  { trade: "electrician", job_type: "socket_install", label: "New socket / point", price_inr: 180, price_kind: "fixed" },
-  { trade: "electrician", job_type: "mcb_replace", label: "MCB replacement", price_inr: 300, price_kind: "fixed" },
-  { trade: "electrician", job_type: "unclear", label: "Visit charge", price_inr: 150, price_kind: "visit" },
-  { trade: "carpenter", job_type: "door_repair", label: "Door repair / alignment", price_inr: 250, price_kind: "fixed" },
-  { trade: "carpenter", job_type: "lock_install", label: "Lock / latch fitting", price_inr: 200, price_kind: "fixed" },
-  { trade: "carpenter", job_type: "hinge_handle_replace", label: "Hinge / handle replacement", price_inr: 150, price_kind: "fixed" },
-  { trade: "carpenter", job_type: "furniture_repair", label: "Furniture repair", price_inr: 350, price_kind: "fixed" },
-  { trade: "carpenter", job_type: "shelf_install", label: "Shelf / curtain rod fitting", price_inr: 200, price_kind: "fixed" },
-  { trade: "carpenter", job_type: "unclear", label: "Visit charge", price_inr: 150, price_kind: "visit" },
-];
-
-export function skillsFor(trade: Trade) {
-  return RATE_CARD.filter((r) => r.trade === trade && r.price_kind === "fixed").map((r) => r.job_type);
-}
+import { skillsFor } from "../core/catalogue.ts";
 
 // Coordinates are approximate points in Civil Lines, Roorkee (the demo locality).
 const DEMO_WORKERS = [
@@ -42,11 +14,14 @@ export const TIME_BANDS = ["morning", "afternoon", "evening", "night"] as const;
 const BAND_OFFERS = { morning: 8, afternoon: 10, evening: 7, night: 2 };
 
 export function seedWorkers(phones: string[]) {
-  return DEMO_WORKERS.map((w, i) => ({
+  return DEMO_WORKERS.map(({ trade, ...w }, i) => ({
     ...w,
     phone: phones[i]!,
-    skills: skillsFor(w.trade),
+    trades: [trade],
+    skills: skillsFor(trade),
     locality: "Civil Lines",
+    areas: ["Civil Lines"],
+    working_hours: "8 am to 8 pm",
     hours_start: "08:00",
     hours_end: "20:00",
     language: "hi",
@@ -93,15 +68,11 @@ export async function seed(sql: Sql, phones: string[]) {
 
   // One statement per table: each query is a round trip to Supabase.
   await sql.begin(async (tx) => {
-    await tx`
-      insert into rate_card ${tx(RATE_CARD)}
-      on conflict (trade, job_type) do update
-        set label = excluded.label, price_inr = excluded.price_inr, price_kind = excluded.price_kind`;
-
     const ids = await tx<{ id: string; phone: string }[]>`
       insert into workers ${tx(workerRows)}
       on conflict (phone) do update
-        set name = excluded.name, trade = excluded.trade, skills = excluded.skills, locality = excluded.locality,
+        set name = excluded.name, trades = excluded.trades, skills = excluded.skills, locality = excluded.locality,
+            areas = excluded.areas, working_hours = excluded.working_hours,
             lat = excluded.lat, lng = excluded.lng, hours_start = excluded.hours_start, hours_end = excluded.hours_end,
             language = excluded.language, has_smartphone = excluded.has_smartphone, online = excluded.online,
             online_at = excluded.online_at, checks = excluded.checks, verified = excluded.verified,
@@ -129,6 +100,6 @@ if (import.meta.main) {
   const env = readEnv(z.object({ DATABASE_URL: z.string().min(1), DEMO_WORKER_PHONES: DemoPhones }), process.env);
   const sql = postgres(env.DATABASE_URL);
   const workers = await seed(sql, env.DEMO_WORKER_PHONES);
-  console.log(`seeded ${RATE_CARD.length} rate-card rows and ${workers.length} workers: ${workers.map((w) => `${w.name} (${w.trade})`).join(", ")}`);
+  console.log(`seeded ${workers.length} workers: ${workers.map((w) => `${w.name} (${w.trades.join(", ")})`).join(", ")}`);
   await sql.end();
 }

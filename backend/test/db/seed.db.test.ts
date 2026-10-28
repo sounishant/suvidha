@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { migrate } from "../../src/db/migrate.ts";
-import { RATE_CARD, seed } from "../../src/db/seed.ts";
+import { seed, seedWorkers } from "../../src/db/seed.ts";
 import { resetDb, testSql } from "./helpers.ts";
 
 const sql = testSql();
@@ -18,10 +18,9 @@ describe("migrate + seed", () => {
     await seed(sql, phones);
 
     const [counts] = await sql`
-      select (select count(*)::int from rate_card)    as rate_card,
-             (select count(*)::int from workers)      as workers,
+      select (select count(*)::int from workers)      as workers,
              (select count(*)::int from worker_stats) as stats`;
-    expect(counts).toEqual({ rate_card: RATE_CARD.length, workers: 3, stats: 5 * 4 * 3 });
+    expect(counts).toEqual({ workers: 3, stats: seedWorkers(phones).flatMap((w) => w.skills).length * 4 });
   });
 
   it("stores worker checks as a JSON object, not a JSON string", async () => {
