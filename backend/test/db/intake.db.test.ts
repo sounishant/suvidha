@@ -256,6 +256,12 @@ describe("a complete intake call", () => {
     // While testing on one number, the worker reaches the customer line too.
     expect(await lookup("customer", SANSKAR)).toMatchObject({ caller_type: "worker", name: "Sanskar", transfer_number: phone });
   });
+
+  it("treats a worker without a booking who calls the customer line as a customer", async () => {
+    const nishant = "+919000000001";
+    expect(await lookup("customer", nishant)).toMatchObject({ caller_type: "new", transfer_number: "" });
+    expect((await intakeCall(nishant, { trade: "plumber", job_type: "tap repair" })).status).toBe("confirmed");
+  });
 });
 
 describe("the shortlist message", () => {

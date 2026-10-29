@@ -41,13 +41,12 @@ async function workerBooking(ctx: Ctx, worker: Worker) {
 
 export async function lookupCustomer(ctx: Ctx, caller: Caller) {
   const { sql } = ctx;
-  // While testing on one number, workers reach the customer line too.
+  // While testing on one number, a worker with a booked job reaches it here; anyone else is a customer, workers included.
   const worker = await workerByPhone(ctx, caller.phone);
-  if (worker) {
-    if (worker.blocked) return REJECT;
-    const booking = await workerBooking(ctx, worker);
+  const booking = worker && !worker.blocked ? await workerBooking(ctx, worker) : null;
+  if (worker && booking?.transfer) {
     return {
-      call_type: "inbound", caller_ref: await issueCallerRef(ctx, "worker", caller), caller_type: "worker",
+      call_type: "inbound", caller_ref: await issueCallerRef(ctx, "customer", caller), caller_type: "worker",
       name: worker.name, last_address: "", open_job: booking.line, transfer_number: booking.transfer,
     };
   }
