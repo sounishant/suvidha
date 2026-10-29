@@ -35,7 +35,7 @@ export async function recordCallStatus(ctx: Ctx, call: CallStatus) {
     return recordWorkerCall(ctx, quote, {
       status: call.status,
       durationSec,
-      quote: call.extracted_data ? workerQuote(call.extracted_data) : null,
+      quote: call.extracted_data ? workerQuote(call.extracted_data, ctx.now()) : null,
     });
   }
   if (updated.length) return;

@@ -6,7 +6,12 @@ const EMPTY = new Set(["", "null", "none", "n/a", "na", "nil", "-", "unknown", "
 
 const keyOf = (k: string) => k.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 
-// Bolna nests extractions by category and sometimes wraps a value ({"subjective": "..."}); flatten to field -> text.
+const ANSWER_KEYS = ["objective", "subjective", "value", "answer"];
+
+const isEmpty = (v: unknown) => v === null || v === undefined || (typeof v !== "object" && EMPTY.has(String(v).trim().toLowerCase()));
+
+// Bolna nests extractions by category; each field's result is {objective?, subjective?, confidence, reasoning…}.
+// The chosen option wins over free text. Flattened to field -> text.
 export function flattenExtraction(data: unknown): Map<string, string> {
   const out = new Map<string, string>();
   const walk = (value: unknown, key: string) => {
@@ -22,8 +27,8 @@ export function flattenExtraction(data: unknown): Map<string, string> {
       return;
     }
     const entries = Object.entries(value as Record<string, unknown>);
-    const wrapped = entries.length === 1 && ["subjective", "value", "answer", "objective"].includes(keyOf(entries[0]![0]));
-    if (wrapped && key) return walk(entries[0]![1], key);
+    const answers = new Map(entries.filter(([k]) => ANSWER_KEYS.includes(keyOf(k))).map(([k, v]) => [keyOf(k), v]));
+    if (answers.size && key) return walk(ANSWER_KEYS.map((k) => answers.get(k)).find((v) => !isEmpty(v)), key);
     for (const [k, v] of entries) walk(v, keyOf(k));
   };
   walk(data, "");
@@ -73,6 +78,41 @@ export function toTimestamp(text: string | undefined) {
   return Number.isNaN(ms) ? null : new Date(ms);
 }
 
+// The extraction never sees today's date, so a timestamp it writes counts only if it is near the call.
+function plausible(d: Date | null, now: Date) {
+  if (!d) return null;
+  const t = d.getTime() - now.getTime();
+  return t >= -3600_000 && t <= 30 * 86_400_000 ? d : null;
+}
+
+// "18:00", "6 pm", "6:30 pm" → minutes after midnight.
+export function toClock(text: string | undefined) {
+  const m = text?.trim().toLowerCase().match(/^(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?/);
+  if (!m) return null;
+  let hour = Number(m[1]);
+  const minute = Number(m[2] ?? 0);
+  if (m[3] === "pm" && hour < 12) hour += 12;
+  if (m[3] === "am" && hour === 12) hour = 0;
+  return hour < 24 && minute < 60 ? hour * 60 + minute : null;
+}
+
+function dayOffset(text: string | undefined) {
+  const t = text?.toLowerCase() ?? "";
+  if (has(t, ["today", "aaj", "आज"])) return 0;
+  if (has(t, ["tomorrow", "kal", "कल"])) return 1;
+  if (has(t, ["week", "hafte", "हफ़्ते"])) return 6;
+  if (has(t, ["later", "baad"])) return 2;
+  return null;
+}
+
+// A day the extraction picked, plus a time if one was said, on the call's own calendar in India time.
+export function onDay(day: string | undefined, time: string | undefined, now: Date, untimed: "end" | "morning") {
+  const offset = dayOffset(day);
+  if (offset === null) return null;
+  const clock = toClock(time) ?? (untimed === "end" ? 24 * 60 - 1 : 10 * 60);
+  return new Date(istDayStart(now).getTime() + offset * 86_400_000 + clock * 60_000);
+}
+
 export function toYesNo(text: string | undefined) {
   if (!text) return null;
   const t = text.toLowerCase();
@@ -114,7 +154,7 @@ export type CustomerCard = {
   language: string | null;
 };
 
-export function customerCard(data: unknown): CustomerCard {
+export function customerCard(data: unknown, now: Date): CustomerCard {
   const f = flattenExtraction(data);
   const get = (...keys: string[]) => keys.map((k) => f.get(k)).find((v) => v !== undefined);
   const tradeText = get("trade");
@@ -135,8 +175,8 @@ export function customerCard(data: unknown): CustomerCard {
     address: get("address", "full_address") ?? null,
     siteContact: get("site_contact") ?? null,
     timeWindowText: windowText ?? null,
-    windowStart: toTimestamp(get("time_window_earliest", "earliest")),
-    windowEnd: toTimestamp(get("time_window_latest", "latest")),
+    windowStart: plausible(toTimestamp(get("time_window_earliest", "earliest")), now),
+    windowEnd: plausible(toTimestamp(get("time_window_latest", "latest")), now) ?? onDay(get("time_window_day"), get("time_window_time"), now, "end"),
     priorities: toPriorities(get("priority_order"), get("priority_first", "priority"), get("priority_second"), get("priority_third")),
     priorityVariant: get("priority_variant") ?? null,
     budgetInr: toBudget(get("budget") ?? ""),
@@ -175,7 +215,7 @@ export type WorkerQuote = {
   note: string | null;
 };
 
-export function workerQuote(data: unknown): WorkerQuote {
+export function workerQuote(data: unknown, now: Date): WorkerQuote {
   const f = flattenExtraction(data);
   const get = (...keys: string[]) => keys.map((k) => f.get(k)).find((v) => v !== undefined);
   const available = toYesNo(get("available"));
@@ -191,6 +231,11 @@ export function workerQuote(data: unknown): WorkerQuote {
     : priceMax !== null && priceMax !== priceMin ? "range"
     : "fixed";
   const material = get("material_included")?.toLowerCase();
+  const inMinutes = toNumber(get("arrival_in_minutes"));
+  // "20 minute mein" is the most reliable; then a day and time; a day alone today means within the hour.
+  const arrival = inMinutes !== null ? new Date(now.getTime() + inMinutes * 60_000)
+    : get("arrival_time") || dayOffset(get("arrival_day")) !== 0 ? onDay(get("arrival_day"), get("arrival_time"), now, "morning")
+    : new Date(now.getTime() + 3600_000);
   return {
     available,
     declineReason: available !== false ? null
@@ -203,7 +248,7 @@ export function workerQuote(data: unknown): WorkerQuote {
     priceMax: priceType === "fixed" || priceType === "range" ? priceMax : null,
     visitCharge: toNumber(get("visit_charge")),
     materialIncluded: material ? (material.startsWith("y") || material.startsWith("haan") ? "yes" : material.startsWith("part") ? "partly" : "no") : null,
-    earliestArrival: toTimestamp(get("earliest_arrival")),
+    earliestArrival: (get("arrival_in_minutes") || get("arrival_day") ? arrival : null) ?? plausible(toTimestamp(get("earliest_arrival")), now),
     durationMins: toNumber(get("duration_mins", "duration")),
     note: get("note") ?? null,
   };

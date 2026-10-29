@@ -87,10 +87,10 @@ const OPEN_STATUSES: JobStatus[] = ["draft", "confirmed", "inviting", "quotes_in
 
 // Built once per intake call from Bolna's extraction; the caller's confirmed read-back is the source of truth.
 export async function jobFromCall(ctx: Ctx, call: { executionId: string; phone: string; callerRef: string | null; extraction: unknown }) {
-  const card = customerCard(call.extraction);
+  const now = ctx.now();
+  const card = customerCard(call.extraction, now);
   if (!card.trade && !card.problem && !card.address) return null;
 
-  const now = ctx.now();
   const place = await locate(ctx, card.address);
   const missing = missingFields(card);
   const complexity = card.complexity ?? (card.jobType && card.jobType !== "other" ? "standard" : "unclear");

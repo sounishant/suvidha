@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { customerCard, flattenExtraction, inferUrgency, missingFields, toBudget, toMaterial, toPriorities, toTimestamp, workerQuote } from "../src/core/card.ts";
 
+const NOW = new Date("2026-10-27T10:00:00Z"); // 15:30 IST
+
 describe("flattenExtraction", () => {
   it("finds fields under Bolna's categories, unwraps {subjective} and drops empty answers", () => {
     const f = flattenExtraction({
@@ -8,6 +10,17 @@ describe("flattenExtraction", () => {
       "Job Card": { Trade: "Plumber", "Job Type": { value: "tap_repair" }, Budget: "N/A", "Site Contact": "" },
     });
     expect(Object.fromEntries(f)).toEqual({ call_summary: "Tap leaking", trade: "Plumber", job_type: "tap_repair" });
+  });
+
+  it("reads Bolna's result objects: the chosen option first, free text when no option was chosen", () => {
+    const f = flattenExtraction({
+      "Job Card": {
+        trade: { subjective: "carpenter hai", objective: "carpenter", confidence: 0.9, reasoning_objective: "said darwaza" },
+        problem: { subjective: "Door hinge broken", objective: null, confidence: 0.8 },
+        budget: { subjective: "", objective: "N/A" },
+      },
+    });
+    expect(Object.fromEntries(f)).toEqual({ trade: "carpenter", problem: "Door hinge broken" });
   });
 });
 
@@ -24,7 +37,7 @@ describe("customerCard", () => {
   };
 
   it("builds the spec's sample card", () => {
-    const card = customerCard(extraction);
+    const card = customerCard(extraction, NOW);
     expect(card).toMatchObject({
       trade: "carpenter", jobType: "door_repair", jobTypeOther: null, material: "worker_brings", firstName: "Rohan",
       priorities: ["speed"], budgetInr: null, complexity: "standard", language: "hi",
@@ -34,12 +47,12 @@ describe("customerCard", () => {
   });
 
   it("keeps the caller's words for a job type outside the list", () => {
-    const card = customerCard({ trade: "carpenter", job_type: "Jhoola theek karna" });
+    const card = customerCard({ trade: "carpenter", job_type: "Jhoola theek karna" }, NOW);
     expect([card.jobType, card.jobTypeOther]).toEqual(["other", "Jhoola theek karna"]);
   });
 
   it("lists every required field that came back empty", () => {
-    expect(missingFields(customerCard({ trade: "plumber", problem: "leak" }))).toEqual(["job_type", "material", "address", "time_window", "priority"]);
+    expect(missingFields(customerCard({ trade: "plumber", problem: "leak" }, NOW))).toEqual(["job_type", "material", "address", "time_window", "priority"]);
   });
 });
 
@@ -68,15 +81,34 @@ describe("normalisers", () => {
 
 describe("workerQuote", () => {
   it("reads a range quote", () => {
-    expect(workerQuote({ quote: { available: "yes", price_min: "300", price_max: "400", material_included: "yes", earliest_arrival: "2026-10-27T17:30", duration: "45 minutes" } })).toMatchObject({
+    expect(workerQuote({ quote: { available: "yes", price_min: "300", price_max: "400", material_included: "yes", earliest_arrival: "2026-10-27T17:30", duration: "45 minutes" } }, NOW)).toMatchObject({
       available: true, priceType: "range", priceMin: 300, priceMax: 400, materialIncluded: "yes", durationMins: 45,
       earliestArrival: new Date("2026-10-27T12:00:00Z"),
     });
   });
 
   it("reads a fixed price, a visit-only quote and a decline", () => {
-    expect(workerQuote({ available: "haan", price: "350" })).toMatchObject({ priceType: "fixed", priceMin: 350, priceMax: 350 });
-    expect(workerQuote({ available: "yes", price_type: "only after visit", visit_charge: "100" })).toMatchObject({ priceType: "visit_only", priceMin: null, visitCharge: 100 });
-    expect(workerQuote({ available: "no", decline_reason: "bahut door hai" })).toMatchObject({ available: false, declineReason: "too_far", priceType: null });
+    expect(workerQuote({ available: "haan", price: "350" }, NOW)).toMatchObject({ priceType: "fixed", priceMin: 350, priceMax: 350 });
+    expect(workerQuote({ available: "yes", price_type: "only after visit", visit_charge: "100" }, NOW)).toMatchObject({ priceType: "visit_only", priceMin: null, visitCharge: 100 });
+    expect(workerQuote({ available: "no", decline_reason: "bahut door hai" }, NOW)).toMatchObject({ available: false, declineReason: "too_far", priceType: null });
+  });
+});
+
+describe("dates the extraction can get right", () => {
+  it("works out the customer's window from a day and a time, on the call's calendar", () => {
+    expect(customerCard({ time_window_day: "tomorrow", time_window_time: "6 pm" }, NOW).windowEnd).toEqual(new Date("2026-10-28T12:30:00Z"));
+    expect(customerCard({ time_window_day: "today" }, NOW).windowEnd).toEqual(new Date("2026-10-27T18:29:00Z"));
+    expect(customerCard({ time_window_day: "flexible" }, NOW).windowEnd).toBeNull();
+  });
+
+  it("ignores a timestamp that is not near the call", () => {
+    expect(customerCard({ time_window_latest: "2024-01-05T18:00", time_window_day: "today", time_window_time: "18:00" }, NOW).windowEnd)
+      .toEqual(new Date("2026-10-27T12:30:00Z"));
+  });
+
+  it("works out a worker's arrival from minutes, or a day and time", () => {
+    expect(workerQuote({ available: "yes", price: "300", arrival_in_minutes: "20" }, NOW).earliestArrival).toEqual(new Date("2026-10-27T10:20:00Z"));
+    expect(workerQuote({ available: "yes", price: "300", arrival_day: "tomorrow", arrival_time: "10:00" }, NOW).earliestArrival).toEqual(new Date("2026-10-28T04:30:00Z"));
+    expect(workerQuote({ available: "yes", price: "300", arrival_day: "today" }, NOW).earliestArrival).toEqual(new Date("2026-10-27T11:00:00Z"));
   });
 });
