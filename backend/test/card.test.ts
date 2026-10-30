@@ -92,6 +92,12 @@ describe("workerQuote", () => {
     expect(workerQuote({ available: "yes", price_type: "only after visit", visit_charge: "100" }, NOW)).toMatchObject({ priceType: "visit_only", priceMin: null, visitCharge: 100 });
     expect(workerQuote({ available: "no", decline_reason: "bahut door hai" }, NOW)).toMatchObject({ available: false, declineReason: "too_far", priceType: null });
   });
+
+  it("keeps an estimated range even when he says the final price comes after seeing the job", () => {
+    // Kalpana: "kaam dekh kar bata payenge, waise 300-400 rupaye mein ho jana chahiye"
+    expect(workerQuote({ available: "yes", price_type: "visit_only", price_min: "300", price_max: "400" }, NOW))
+      .toMatchObject({ priceType: "range", priceMin: 300, priceMax: 400 });
+  });
 });
 
 describe("dates the extraction can get right", () => {
@@ -110,5 +116,14 @@ describe("dates the extraction can get right", () => {
     expect(workerQuote({ available: "yes", price: "300", arrival_in_minutes: "20" }, NOW).earliestArrival).toEqual(new Date("2026-10-27T10:20:00Z"));
     expect(workerQuote({ available: "yes", price: "300", arrival_day: "tomorrow", arrival_time: "10:00" }, NOW).earliestArrival).toEqual(new Date("2026-10-28T04:30:00Z"));
     expect(workerQuote({ available: "yes", price: "300", arrival_day: "today" }, NOW).earliestArrival).toEqual(new Date("2026-10-27T11:00:00Z"));
+  });
+
+  it("reads a clock time as its next occurrence, whatever day the extraction guessed", () => {
+    const twoAm = new Date("2026-10-30T20:48:00Z"); // 2:18 am IST, as in Kalpana's call
+    expect(workerQuote({ available: "yes", price: "300", arrival_day: "later", arrival_time: "08:00" }, twoAm).earliestArrival)
+      .toEqual(new Date("2026-10-31T02:30:00Z"));
+    const ninePm = new Date("2026-10-30T15:30:00Z"); // 9 pm IST: "8 baje" means tomorrow morning
+    expect(workerQuote({ available: "yes", price: "300", arrival_time: "08:00" }, ninePm).earliestArrival)
+      .toEqual(new Date("2026-10-31T02:30:00Z"));
   });
 });

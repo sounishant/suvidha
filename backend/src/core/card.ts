@@ -113,6 +113,15 @@ export function onDay(day: string | undefined, time: string | undefined, now: Da
   return new Date(istDayStart(now).getTime() + offset * 86_400_000 + clock * 60_000);
 }
 
+// "8 baje" said at 2 am means 8 am today; said at 9 pm, 8 am tomorrow. Only an explicit "tomorrow" adds a day.
+function arrivalAt(day: string | undefined, time: string | undefined, now: Date) {
+  const clock = toClock(time);
+  if (clock === null) return onDay(day, undefined, now, "morning");
+  if (dayOffset(day) === 1) return onDay(day, time, now, "morning");
+  const today = new Date(istDayStart(now).getTime() + clock * 60_000);
+  return today.getTime() >= now.getTime() - 15 * 60_000 ? today : new Date(today.getTime() + 86_400_000);
+}
+
 export function toYesNo(text: string | undefined) {
   if (!text) return null;
   const t = text.toLowerCase();
@@ -220,21 +229,21 @@ export function workerQuote(data: unknown, now: Date): WorkerQuote {
   const get = (...keys: string[]) => keys.map((k) => f.get(k)).find((v) => v !== undefined);
   const available = toYesNo(get("available"));
   const reason = get("decline_reason")?.toLowerCase() ?? "";
-  const typeText = get("price_type")?.toLowerCase() ?? "";
   const single = toNumber(get("price"));
   const priceMin = toNumber(get("price_min")) ?? single;
   const priceMax = toNumber(get("price_max")) ?? single ?? priceMin;
+  // "Dekh kar bataunga, waise 300–400" is still a range the customer can compare; visit-only means no amount at all.
   const priceType: WorkerQuote["priceType"] =
     available !== true ? null
-    : typeText.includes("visit") ? "visit_only"
     : priceMin === null ? "visit_only"
     : priceMax !== null && priceMax !== priceMin ? "range"
     : "fixed";
   const material = get("material_included")?.toLowerCase();
   const inMinutes = toNumber(get("arrival_in_minutes"));
-  // "20 minute mein" is the most reliable; then a day and time; a day alone today means within the hour.
+  const said = get("arrival_in_minutes") || get("arrival_day") || get("arrival_time");
+  // "20 minute mein" is the most reliable; then a time and day; "today" alone means within the hour.
   const arrival = inMinutes !== null ? new Date(now.getTime() + inMinutes * 60_000)
-    : get("arrival_time") || dayOffset(get("arrival_day")) !== 0 ? onDay(get("arrival_day"), get("arrival_time"), now, "morning")
+    : get("arrival_time") || dayOffset(get("arrival_day")) !== 0 ? arrivalAt(get("arrival_day"), get("arrival_time"), now)
     : new Date(now.getTime() + 3600_000);
   return {
     available,
@@ -248,7 +257,7 @@ export function workerQuote(data: unknown, now: Date): WorkerQuote {
     priceMax: priceType === "fixed" || priceType === "range" ? priceMax : null,
     visitCharge: toNumber(get("visit_charge")),
     materialIncluded: material ? (material.startsWith("y") || material.startsWith("haan") ? "yes" : material.startsWith("part") ? "partly" : "no") : null,
-    earliestArrival: (get("arrival_in_minutes") || get("arrival_day") ? arrival : null) ?? plausible(toTimestamp(get("earliest_arrival")), now),
+    earliestArrival: (said ? arrival : null) ?? plausible(toTimestamp(get("earliest_arrival")), now),
     durationMins: toNumber(get("duration_mins", "duration")),
     note: get("note") ?? null,
   };

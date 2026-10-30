@@ -70,9 +70,10 @@ export function jobLabel(job: Pick<JobRow, "language" | "job_type" | "job_type_o
   return job.job_type_other ?? job.problem ?? label(job.language, "job_type", "other");
 }
 
+// The caller's own words ("aaj shaam tak") read better than the end-of-day time worked out from them.
 export function whenText(job: Pick<JobRow, "language" | "window_end" | "time_window_text">, now: Date) {
-  if (job.window_end) return whenLabel(job.language, job.window_end, now);
-  return job.time_window_text ?? whatsappText(job.language, "none");
+  if (job.time_window_text) return job.time_window_text;
+  return job.window_end ? whenLabel(job.language, job.window_end, now) : whatsappText(job.language, "none");
 }
 
 async function locate(ctx: Ctx, address: string | null) {
