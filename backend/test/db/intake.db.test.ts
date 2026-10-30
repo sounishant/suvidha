@@ -125,6 +125,8 @@ const card = (overrides: Record<string, string> = {}) => ({
 // An intake call ends: Bolna sends the extraction with the lookup's call id.
 async function intakeCall(phone: string, overrides: Record<string, string> = {}) {
   const who = await lookup("customer", phone);
+  // Bolna's real order: earlier statuses carry no extraction; it comes with completed.
+  for (const status of ["ringing", "in-progress", "call-disconnected"]) await callWebhook({ id: who.executionId, status, conversation_duration: 0 });
   await callWebhook({ id: who.executionId, status: "completed", conversation_duration: 150, extracted_data: { "Job Card": card(overrides) } });
   return (await sql`select * from jobs where execution_id = ${who.executionId}`)[0]!;
 }
@@ -351,6 +353,31 @@ describe("when nobody quotes", () => {
     await tick(inSeconds(61 + 301));
     expect((await sql`select call_status from quotes where job_id = ${j.id}`).map((q) => q.call_status)).toEqual(["no_answer", "no_answer"]);
     expect((await job(j.id)).status).toBe("no_workers");
+  });
+});
+
+describe("a real Bolna extraction", () => {
+  it("builds a draft from Bolna's result objects and asks for the missing fields", async () => {
+    const result = (objective: string | null, subjective: string | null) => ({
+      objective, subjective, confidence: 0.9, validation: null, confidence_label: "High", reasoning_objective: null, reasoning_subjective: null,
+    });
+    const who = await lookup("customer", "+919100000008");
+    for (const status of ["ringing", "in-progress", "call-disconnected"]) await callWebhook({ id: who.executionId, status, conversation_duration: 0 });
+    await callWebhook({
+      id: who.executionId, status: "completed", conversation_duration: 68,
+      extracted_data: { "Job Card": {
+        trade: result("plumber", null),
+        problem: result(null, "A tap in the bathroom is leaking and may need repair or replacement."),
+        material: result("worker_brings", null),
+        address: result(null, ""),
+        budget: { ...result(null, ""), validation: { is_valid: false, expected_type: "numeric" } },
+        time_window_day: result("today", null),
+        priority_first: result(null, null),
+      } },
+    });
+    const [j] = await sql`select * from jobs where execution_id = ${who.executionId}`;
+    expect(j).toMatchObject({ status: "draft", trade: "plumber", material: "worker_brings", missing_fields: ["job_type", "address", "priority"] });
+    expect(sent.filter((s) => s.to === "919100000008").map((s) => s.text.slice(0, 16))).toEqual(["*Suvidha: aapka ", "Kya kaam karwana"]);
   });
 });
 

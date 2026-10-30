@@ -28,7 +28,8 @@ export async function recordCallStatus(ctx: Ctx, call: CallStatus) {
   };
 
   // Calls we placed already have a contacts row; worker quote calls also have a quotes row.
-  const updated = await sql`update contacts set ${sql(fields)} where bolna_execution_id = ${call.id} returning id`;
+  const updated = await sql<{ direction: string }[]>`
+    update contacts set ${sql(fields)} where bolna_execution_id = ${call.id} returning direction`;
   const [quote] = await sql<{ id: string; job_id: string; worker_id: string }[]>`
     select id, job_id, worker_id from quotes where bolna_execution_id = ${call.id}`;
   if (quote) {
@@ -38,7 +39,8 @@ export async function recordCallStatus(ctx: Ctx, call: CallStatus) {
       quote: call.extracted_data ? workerQuote(call.extracted_data, ctx.now()) : null,
     });
   }
-  if (updated.length) return;
+  // An inbound call has a row from its earlier statuses too, and still needs its extraction read below.
+  if (updated[0]?.direction === "outbound") return;
 
   const [caller] = await sql<{ ref: string; line: "customer" | "worker"; phone: string }[]>`
     select ref, line, phone from caller_refs
