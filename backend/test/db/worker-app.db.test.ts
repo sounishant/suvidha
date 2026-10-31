@@ -72,6 +72,7 @@ describe("worker app", () => {
     expect(home.invites).toHaveLength(1);
     expect(home.invites[0]).toMatchObject({ quoteRef: "WQ0", state: "open", locality: "Civil Lines" });
     expect(JSON.stringify(home.invites)).not.toContain("H.No 12");
+    expect(JSON.stringify(home.invites)).not.toContain(CUSTOMER.slice(3));
   });
 
   it("takes a quote and a decline from the app, then sends the customer the shortlist", async () => {
@@ -101,7 +102,7 @@ describe("worker app", () => {
     const [codes] = await sql<{ start_otp: string; completion_otp: string }[]>`select start_otp, completion_otp from bookings`;
 
     let home = await services.workerHome(nishant);
-    expect(home.active[0]).toMatchObject({ jobRef: "WJOB", stage: "booked", address: "H.No 12, Civil Lines", customer: "Asha" });
+    expect(home.active[0]).toMatchObject({ jobRef: "WJOB", stage: "booked", address: "H.No 12, Civil Lines", customer: "Asha", callNumber: CUSTOMER });
 
     expect(await services.bookingStep(nishant, "WJOB", { kind: "trip" })).toEqual({ ok: true });
     await background.settle();

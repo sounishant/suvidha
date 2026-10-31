@@ -45,6 +45,7 @@ type ActiveRow = {
   site_contact: string | null;
   safety_note: string | null;
   customer_name: string | null;
+  customer_phone: string;
   time_window_text: string | null;
   window_end: Date | null;
   eta_at: Date | null;
@@ -55,7 +56,8 @@ type ActiveRow = {
   final_price_inr: number | null;
 };
 
-// Before booking a worker sees the area, never the address or the customer's phone (job-card spec, "Who sees what").
+// Before booking a worker sees the area, never the address or the customer's phone (job-card spec, "Who sees what");
+// once booked, the worker also gets a number to call the customer on until the job closes.
 export async function workerHome(ctx: Ctx, session: Session) {
   const now = ctx.now();
   const [profile] = await ctx.sql<{ name: string; trades: string[]; verified: boolean; rating: string | null; rating_count: number; online: boolean }[]>`
@@ -72,7 +74,7 @@ export async function workerHome(ctx: Ctx, session: Session) {
 
   const active = await ctx.sql<ActiveRow[]>`
     select j.ref as job_ref, j.trade, j.job_type, j.job_type_other, j.problem, j.address, j.locality, j.site_contact,
-           j.safety_note, c.name as customer_name, j.time_window_text, j.window_end, b.eta_at, b.trip_started_at,
+           j.safety_note, c.name as customer_name, c.phone as customer_phone, j.time_window_text, j.window_end, b.eta_at, b.trip_started_at,
            b.started_at, b.done_at, q.price, b.final_price_inr
     from bookings b join jobs j on j.id = b.job_id join customers c on c.id = j.customer_id left join quotes q on q.id = b.quote_id
     where b.worker_id = ${session.workerId} and b.closed_at is null and j.status = 'booked'
@@ -122,6 +124,8 @@ export async function workerHome(ctx: Ctx, session: Session) {
       problem: a.problem,
       address: a.address ?? a.locality,
       customer: a.site_contact ?? a.customer_name,
+      // The customer's own number until masked calling gives a line that hides both sides.
+      callNumber: a.customer_phone,
       safetyNote: a.safety_note,
       when: whenText({ ...a, language: APP_LANG }, now),
       eta: a.eta_at ? whenLabel(APP_LANG, a.eta_at, now) : null,

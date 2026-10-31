@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft, Check, CircleCheckBig, Clock, MapPin, Navigation, TriangleAlert, UserRound } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { CallCustomer } from "@/components/worker/call-customer";
 import { StepPanel } from "@/components/worker/step-panel";
 import { TRADE, rupees } from "@/lib/job-text";
 import { workerHome } from "@/lib/session";
@@ -89,12 +90,14 @@ async function Job({ params }: Pick<PageProps<"/worker/jobs/[ref]">, "params">) 
             <li className="text-muted-foreground">Your price: <span className="font-medium text-foreground">{rupees(job.price)}</span></li>
           )}
         </ul>
-        {maps && (
-          <a href={maps} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: "secondary" }), "h-12 rounded-xl text-base")}>
-            <Navigation className="size-4" aria-hidden="true" /> Route on Google Maps
-          </a>
-        )}
-        <p className="text-sm text-muted-foreground">Need to talk to the customer? Call the worker line and suvidha will connect you.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <CallCustomer number={job.callNumber} />
+          {maps && (
+            <a href={maps} target="_blank" rel="noreferrer" className={cn(buttonVariants({ variant: "secondary" }), "h-12 rounded-xl text-base")}>
+              <Navigation className="size-4" aria-hidden="true" /> Route on Google Maps
+            </a>
+          )}
+        </div>
       </section>
     </>
   );

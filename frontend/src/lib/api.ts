@@ -98,6 +98,7 @@ export type ActiveJob = {
   problem: string | null;
   address: string | null;
   customer: string | null;
+  callNumber: string;
   safetyNote: string | null;
   when: string;
   eta: string | null;
