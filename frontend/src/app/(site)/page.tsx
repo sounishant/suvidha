@@ -6,7 +6,7 @@ const PHONE_NUMBER = "07965481722";
 const HOW_IT_WORKS_VIDEO_URL = "/demo-suvidha.mp4";
 const DEMO_API_URL = "https://suvidha-backend-b88r.onrender.com";
 const WEB_APP_URL = "/login";
-const PITCH_VIDEO_URL = "[pitch video URL]";
+const PITCH_VIDEO_URL = "/pitch.mp4";
 const GITHUB_URL = "https://github.com/sounishant/suvidha";
 
 const links: Links = {
