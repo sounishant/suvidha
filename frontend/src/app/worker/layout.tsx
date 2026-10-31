@@ -1,4 +1,5 @@
 import { Phone } from "lucide-react";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { Logo } from "@/components/logo";
 import { TabBar } from "@/components/tab-bar";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export default function WorkerLayout({ children }: LayoutProps<"/worker">) {
       </header>
       <main className="mx-auto max-w-4xl px-4 pb-28 pt-6 sm:pb-16">{children}</main>
       <TabBar variant="bottom" area="worker" />
+      <AutoRefresh />
     </div>
   );
 }
