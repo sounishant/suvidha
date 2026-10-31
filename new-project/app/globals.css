@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+/* App colours: #1B4FD1, #E3ECFF, #0C1D40 and plain white. */
+:root {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --tint: #e3ecff;
+  --ink: #0c1d40;
+  --muted: rgb(12 29 64 / 0.7);
+  --line: rgb(12 29 64 / 0.1);
+  --accent: #1b4fd1;
+  --accent-hover: #0c1d40;
+  --accent-text: #1b4fd1;
+  --panel: #0c1d40;
+
+  --step-small: 0.875rem;
+  --step-body: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+  --step-lead: clamp(1.125rem, 1.05rem + 0.35vw, 1.3125rem);
+  --step-title: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
+  --step-figure: clamp(2.5rem, 2rem + 2.2vw, 3.75rem);
+  --step-head: clamp(2.25rem, 1.65rem + 2.5vw, 3.5rem);
+  --step-display: min(12.8vw, 4.75rem);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --step-display: min(5.1vw, 4.75rem);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1d40;
+    --card: rgb(227 236 255 / 0.05);
+    --tint: rgb(227 236 255 / 0.08);
+    --ink: #ffffff;
+    --muted: rgb(227 236 255 / 0.75);
+    --line: rgb(227 236 255 / 0.15);
+    --accent-hover: #163fa8;
+    --accent-text: #e3ecff;
+    --panel: rgb(227 236 255 / 0.08);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-tint: var(--tint);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-panel: var(--panel);
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --radius-card: 20px;
+  --radius-stage: 28px;
+  --text-small: var(--step-small);
+  --text-body: var(--step-body);
+  --text-lead: var(--step-lead);
+  --text-title: var(--step-title);
+  --text-figure: var(--step-figure);
+  --text-head: var(--step-head);
+  --text-display: var(--step-display);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 88px;
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--step-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+em {
+  font-style: italic;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.frame {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+@media (min-width: 640px) {
+  .frame {
+    padding-inline: 32px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .frame {
+    border-inline: 1px solid var(--line);
+    padding-inline: 48px;
+  }
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+  }
+
+  .btn:active {
+    transform: scale(0.97);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  .btn-quiet {
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+
+  .btn-quiet:hover {
+    background: var(--tint);
+  }
+}
+
+/* Hidden only once the script has run, so nothing is lost if it never does. */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 560ms ease, transform 560ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--delay, 0ms);
+}
+
+.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.signal {
+  animation: travel 2.6s linear infinite;
+}
+
+@keyframes travel {
+  from {
+    transform: translate(-50%, -50%);
+    left: 0;
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -50%);
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes travel-down {
+  from {
+    transform: translate(-50%, -50%);
+    top: 0;
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -50%);
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1023px) {
+  .signal {
+    left: 50%;
+    animation-name: travel-down;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .btn {
+    transition: none;
+  }
+
+  .signal {
+    animation: none;
+    display: none;
+  }
+}
