@@ -49,11 +49,13 @@ type ChatProps = {
   bubbles: Bubble[];
   onChoose?: (id: string, title: string) => void;
   empty?: string;
+  // A line under the last message, for what is happening out of view (like a call to a worker).
+  note?: string;
 };
 
-export function Chat({ bubbles, onChoose, empty }: ChatProps) {
+export function Chat({ bubbles, onChoose, empty, note }: ChatProps) {
   return (
-    <div className="flex flex-1 flex-col-reverse overflow-y-auto px-3 py-3">
+    <div className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-3 py-3">
       <div className="space-y-2">
         {!bubbles.length && empty && <p className="mx-auto w-fit rounded-lg bg-white/80 px-3 py-1.5 text-center text-[0.8rem] text-[#54656f]">{empty}</p>}
         {bubbles.map((b) => (
@@ -84,6 +86,7 @@ export function Chat({ bubbles, onChoose, empty }: ChatProps) {
             </div>
           </div>
         ))}
+        {note && <p className="mx-auto w-fit animate-pulse rounded-lg bg-white/80 px-3 py-1.5 text-center text-[0.8rem] text-[#54656f]">{note}</p>}
       </div>
     </div>
   );
@@ -114,7 +117,7 @@ type CallScreenProps = { name: string; status: string; lines: CallLine[]; level?
 
 export function CallScreen({ name, status, lines, level = 0, note }: CallScreenProps) {
   return (
-    <div className="flex flex-1 flex-col bg-[#0b141a] text-white">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#0b141a] text-white">
       <div className="flex flex-col items-center gap-2 pt-6 pb-4">
         <span
           className="flex size-16 items-center justify-center rounded-full bg-[#1b4fd1] text-title font-semibold transition-shadow"
@@ -125,7 +128,7 @@ export function CallScreen({ name, status, lines, level = 0, note }: CallScreenP
         <span className="font-semibold">{name}</span>
         <span className="text-small text-white/65 tabular-nums">{status}</span>
       </div>
-      <div className="flex flex-1 flex-col-reverse overflow-y-auto px-3 pb-3">
+      <div className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-3 pb-3">
         <div className="space-y-2">
           {note && <div className="rounded-lg bg-[#202c33] px-3 py-2.5 text-white/85">{note}</div>}
           {lines.map((line, i) => (
