@@ -1,142 +1,186 @@
 # Suvidha
 
-**Call once. We find the worker. A voice-first marketplace for household repairs in Tier 2 India.**
+**Call once. We find the worker.**
+Household repairs for Tier 2 and Tier 3 India, booked with a single phone call.
 
-**[How it works](#how-it-works) · [The live demo](#the-live-demo) · [Run it locally](#run-it-locally) · [Architecture](#architecture) · [Status](#status)**
+**Web app:** [suvidha-red.vercel.app](https://suvidha-red.vercel.app) · **Backend health:** [suvidha-backend-b88r.onrender.com/health](https://suvidha-backend-b88r.onrender.com/health)
+
+**[The problem](#the-problem) · [Our answer](#our-answer) · [How it works](#how-it-works) · [Pricing](#pricing-and-money) · [Trust and safety](#trust-and-safety) · [Results](#results-so-far) · [Architecture](#architecture) · [Run it](#run-it-yourself) · [Status](#status)**
 
 ## The problem
 
-In a Tier 2 town, getting a tap fixed means asking a neighbour for a number, calling it, and hoping the plumber picks up, is free today, and charges something reasonable. Repair apps assume a smartphone, English and patience with forms. Most households have the first, many lack the second, and nobody has the third when water is on the floor.
+Organised home services in India were built for the big cities. Urban Company, the category leader, operates in about 48 Indian cities ([DRHP, December 2024](https://inc42.com/buzz/urban-company-files-drhp-for-inr-1900-cr-ipo/)), concentrated in the largest metros, in a country of thousands of towns. Its own results now point to Tier 2 cities as the fastest-growing part of demand ([Q1 FY27 results](https://uc-investor-reports.s3.ap-southeast-1.amazonaws.com/Urban_Company_Q1%20FY27_results_Press_release.pdf)). The need is the same everywhere (a leaking tap, a fan that stopped, a door that won't shut), but in Tier 2 and Tier 3 towns nobody serves it properly.
 
-The other side is just as broken. Local plumbers, electricians and carpenters get work by word of mouth, ignore calls from unknown numbers, and have no way to show a stranger that they are good and nearby. Suvidha puts a phone call in the middle: the customer describes the problem in their own words, and an AI agent turns it into a job, finds workers, collects their rates and lets the customer pick one on WhatsApp. Nobody installs anything.
+The reason is not a lack of workers. It is two kinds of friction:
+
+- **People don't want another app.** In a smaller town, getting something fixed has always meant one thing: call someone you know. Downloading an app, filling forms, comparing listings and paying online all stand between the household and a worker who is really just one phone call away. So marketplaces see few downloads and fewer repeat users.
+- **Supply and demand never meet.** Most households rely on one regular plumber or electrician. When that person is busy, out of town or simply not picking up, the family is stuck, even though another skilled worker a few streets away may be sitting idle that very afternoon. There is no simple way for the household to find that worker, and no way for the worker to find the job.
+
+So the work is there, and the workers are there. What is missing is a way to connect them that fits how people in these towns already behave.
+
+## Our answer
+
+Suvidha keeps the habit people already have, **making one phone call**, and does the organising behind it.
+
+The customer calls the Suvidha number and describes the problem in Hindi or Hinglish, just as they would to a neighbour. An AI voice agent understands the job, and then **phones nearby workers on the customer's behalf**, gets a firm price and arrival time from each, and sends the customer a short list on WhatsApp. One tap books the worker.
+
+- **For households:** no app, no forms, no searching. One call, then pick a worker on WhatsApp, which they already use every day.
+- **For workers:** no app needed either. They get a phone call about a job near them, say their rate, and get the work. Idle hours become paid hours, and they keep 100% of their price.
+- **For the town:** the idle worker nearby and the household that needs them finally meet, within minutes.
 
 ## How it works
 
 ```
- Customer ──call──▶ Customer Agent (Bolna, Hindi / Hinglish)
-                        │  story first, then only the missing questions, then a read-back
+ Customer ──calls──▶ Suvidha voice agent (Hindi / Hinglish)
+                        │  listens to the problem, asks only what is missing, reads it back
                         ▼
-                  Job card  ◀── extraction after hang-up: trade, job, problem, material,
-                        │        address, time window, priority, budget, safety note
-                        ├──▶ WhatsApp: summary + "send a photo" + one question per missing field
-                        ▼
-                  Worker calls  (same trade, right skill first, then nearest; 2 at a time)
-                        │  Worker Agent calls each worker while the job card + photo
-                        │  reach them on WhatsApp; each call ends in a quote
-                        ▼
-                  Ranking  (speed · price · quality, weighted by the customer's priority)
-                        ▼
- Customer ◀──WhatsApp── Shortlist with a reason per worker ──tap──▶ Booked
+                    Job card  (trade, problem, material, area, deadline, what matters most)
                         │
-                        ├──▶ Customer: worker, arrival time, rate, start code
-                        └──▶ Worker: address, site contact, safety note
+                        ├──▶ WhatsApp to customer: summary + "send a photo"
+                        ▼
+                    Worker calls  (same trade, right skill first, then nearest; 2 at a time)
+                        │  each worker hears the job and gives one fixed price and a time
+                        ▼
+                    Ranking  (speed · price · quality, weighted by what the customer cares about)
+                        ▼
+ Customer ◀──WhatsApp── Shortlist with a reason for each worker ──tap──▶ pay booking fee ──▶ Booked
+                        │
+                        ├──▶ Customer: worker's name, arrival time, price, start code
+                        └──▶ Worker: full address, site contact, safety note
 ```
 
-1. **One call builds the job card.** The Customer Agent opens with "Main Suvidha AI hoon. Batayiye, kya problem hai?", lets the caller tell the story, asks only what is missing from a short per-trade question set, reads the job back and hangs up. When the call ends, Bolna's extraction fills a structured job card from the confirmed read-back. Anything still missing is asked on WhatsApp, one question at a time, never by calling back.
-2. **Workers are called, not broadcast to.** A minute after the card is complete (or as soon as the photo arrives), the Worker Agent calls workers of that trade, two at a time, right skill first and then nearest. Each worker gets the job card and photo on WhatsApp at the same moment, but never the exact address, the customer's number or the budget. Calling stops at 3 quotes or 6 calls, whichever comes first.
-3. **The customer chooses, with reasons.** Quotes are scored on speed, price and rating, weighted by what the customer said hurt most last time ("late", "overcharged", "bad work"). The shortlist arrives as a WhatsApp list, each worker with a one-line reason such as "Earliest arrival: today 5:30 pm". One tap books. The customer gets the worker's name, arrival time, rate and a start code; the worker gets the address; everyone else is told politely.
+### 1. One call builds the job
 
-**Measured:** four jobs booked end to end on real phones (Oct 30–31, 2026). Intake calls took 0.8 to 1.5 minutes; the median across 17 completed calls, customers and workers, was 91 seconds. From the customer hanging up to a booked worker took **2 min 41 s to 3 min 28 s**, most of it the worker's own call. The caller lookup that runs before each call answers in 0.5 to 0.8 s through the tunnel.
+The customer is greeted with "Main Suvidha AI hoon. Batayiye, kya problem hai?" and simply tells the story. The agent asks only the questions still missing for that kind of job (for example, "Do you already have the new tap, or should the worker bring one?"), reads everything back, and hangs up. A structured job card is filled from that confirmed read-back. If anything is still missing, Suvidha asks once on WhatsApp instead of calling back. The customer can also send a photo, which goes to the workers.
 
-## The live demo
+### 2. Workers are called, not broadcast to
 
-1. A customer calls the Suvidha number and says, in Hinglish, "Kitchen ka nal leak ho raha hai, aaj shaam tak chahiye."
-2. Within seconds of hanging up, WhatsApp shows "*Your Suvidha request*" with the job, material, address and deadline, and asks for a photo.
-3. The plumber's phone rings. The agent describes the job, takes a rate and an arrival time, and reads the quote back. The job card and the customer's photo are already on the plumber's WhatsApp.
-4. The customer taps **Choose worker** on the shortlist. Both sides get the booking; the customer holds the start code, the worker gets the address.
+A minute after the job card is complete, the second voice agent starts calling workers of that trade: two at a time, those with the right skill first, then the nearest. Each worker hears the job, the area and the deadline, and is asked for **one fixed price** (or a fixed visit charge if the job must be seen first) and when they can start. The same job card and photo reach them on WhatsApp at the same moment. Calling stops at 3 quotes or 4 calls, whichever comes first, so no worker's time is wasted.
 
-Everything the agents say lives in the Bolna agent setup; every WhatsApp line lives in `backend/messages/en.json` and `backend/messages/hi.json`. The backend keeps every incoming Bolna and WhatsApp request raw in `webhook_log`, so any demo run can be traced afterwards, call by call.
+### 3. The customer chooses, with reasons
 
-Languages: Hindi and Hinglish on calls; WhatsApp in Hinglish (Roman script) or English.
+Every quote is scored on speed, price and rating, weighted by what the customer said bothered them most last time: a worker who came late, overcharged, or did poor work. The shortlist arrives as a WhatsApp list, each worker with a one-line reason such as "Earliest arrival: today 5:30 pm". The customer taps a worker, pays the small booking fee, and the booking is confirmed for both sides.
 
-### Try it yourself
+### 4. The job gets done
 
-The web app runs alongside the phone flow. Customers sign in with a code sent on WhatsApp at `/login` to see their bookings and request a worker; workers sign in at `/login/worker` to see jobs, send a quote, step through a booking with the start and finish codes, and see their earnings.
+The worker taps **On my way** on WhatsApp, and the customer is told the worker is coming. At the door, the customer gives the worker a **start code**; when the work is done, a **finish code** closes the job. The customer pays the worker's price directly to the worker.
 
-While testing, set `CUSTOMER_LINE_MODE=test` so the team's own phones can call as often as they like. Workers calling the customer line are then treated as customers too. Switch it back to `live` for the demo.
+### Optional web app
 
-## Run it locally
+Customers who prefer a screen can sign in with a code sent on WhatsApp to see their jobs, compare prices and book. Workers have their own simple app to see job requests, send a price, step through a booking with the start and finish codes, and track their earnings. The phone call and WhatsApp remain the main way to use Suvidha; the app is extra, never required.
 
-You need Node 24, a Supabase project, a Bolna account with two agents, a Meta WhatsApp test number and `cloudflared`.
+## Pricing and money
 
-```bash
-git clone https://github.com/sounishant/suvidha.git && cd suvidha
-cp .env.example .env                        # fill in every key
+| Who | Pays | Gets |
+|---|---|---|
+| Customer | A small booking fee when they confirm a worker: **₹29** for jobs under ₹500, **₹49** up to ₹1,999, **₹99** from ₹2,000 | A verified, nearby worker at a fixed price, booked in minutes |
+| Worker | Nothing per job | **100% of their price**, paid directly by the customer |
 
-cd backend
-npm install
-npm run migrate && npm run seed             # schema, task catalogue, workers from DEMO_WORKER_PHONES
-npm run create-photo-bucket                 # private Supabase Storage bucket for job photos
-npm run dev                                 # http://localhost:8080
+- The fee is paid through a link on WhatsApp, valid for 5 minutes. The booking is confirmed only once it is paid; if it isn't, the customer can simply choose again.
+- **Cancelling is fair to whoever didn't cause it.**
+  - The customer cancels before the worker has set out: full refund.
+  - The customer cancels after the worker set out: ₹25 goes to the worker for their travel, the rest comes back.
+  - The worker cancels, Suvidha cancels, or the worker doesn't turn up: full refund plus ₹25 credit as an apology.
+- Credit never expires and is used first on the next booking fee. The balance is shown in every booking message.
+- A worker who doesn't turn up is called last for the next 2 days.
 
-cloudflared tunnel --url http://localhost:8080    # public URL for Bolna and Meta
+Payments run in a test mode for now; a payment provider (UPI links) plugs in at the same place.
 
-cd ../frontend
-npm install
-npm run dev                                 # http://localhost:3000
-```
+## Trust and safety
 
-| URL | What |
-|---|---|
-| `/health` | Backend and database check |
-| `/bolna/lookup/customer`, `/bolna/lookup/worker` | Caller lookup Bolna runs before answering; returns a short caller code instead of a phone number |
-| `/bolna/webhook/call` | Every call status; the job card and worker quotes arrive here in the extraction when a call ends |
-| `/bolna/fn/register_worker` | Worker Agent function for new workers who call in |
-| `/whatsapp/webhook` | Button taps, photos, replies and delivery receipts from Meta |
-| `/app/*` | Web app API, called only by the Next.js server |
-| `localhost:3000/login`, `/login/worker` | Customer and worker web app |
+- **Privacy by default.** Before a worker is booked, they see only the area and the distance, never the customer's address, phone number or budget. The AI agents never see phone numbers at all; they work with short caller codes.
+- **Codes at the door.** The start and finish codes make sure the right worker starts the job and the customer agrees it is done.
+- **Photos stay private.** They are stored in a private bucket and shared with workers only as short-lived links.
+- **Prank and abuse limits.** Repeated or abusive callers are limited and flagged automatically.
 
-Point both Bolna agents' call webhook and the Customer Agent's inbound lookup at the tunnel URL, and Meta's WhatsApp webhook at `<tunnel>/whatsapp/webhook`. The Customer Agent needs the "Job Card" extraction fields and the Worker Agent the "Quote" fields; the names the backend reads are in `backend/src/core/card.ts`. The web app reads `BACKEND_URL` and `APP_API_TOKEN` from `frontend/.env.local`.
+## Results so far
 
-Tests: `npm run typecheck`, `npm test` (84 unit tests) and `npm run test:db` (38 database tests, including a full call-to-booking flow, in their own schema). `npm run sim` replays signed Bolna and WhatsApp requests against a running server.
+Tested end to end on real phones in Roorkee (October 2026):
+
+- **About 1.5 minutes** for a customer's intake call (median across 17 calls with customers and workers).
+- **Under 3.5 minutes** from the customer hanging up to a booked worker, in every test (2 min 41 s to 3 min 28 s), most of it the worker's own call.
+- The caller lookup that runs before every call answers in under a second.
 
 ## Architecture
 
-The backend is TypeScript on Node 24 with Express, plain SQL through postgres.js, and Zod at every boundary. It has three entry points (Bolna, WhatsApp, the web app), and all of them call the same functions in `backend/src/core/`.
+```
+ Phone calls ──▶ Bolna voice agents ──webhooks──┐
+ WhatsApp    ──▶ Meta Cloud API     ──webhooks──┼──▶  Backend (Node 24, Express)  ──▶  Supabase Postgres + Storage
+ Web app     ──▶ Next.js (server)   ──/app API──┘         │
+                                                           └──▶ Google Maps (area and distance)
+```
 
-- **Every request is checked, then saved, then deduplicated.** Bolna requests carry a bearer token or a shared header, Meta's are HMAC-signed. Each one is stored raw in `webhook_log` before anything acts on it, and repeats (a WhatsApp message ID, a Bolna call ID plus status) are answered and ignored.
-- **Timers live in the database.** Every wait (invite workers in a minute, give up on an unanswered call) is a `next_action_at` column. A loop every few seconds acts on whatever is overdue, so a restart loses nothing.
-- **The AI never handles phone numbers.** The lookup hands the agent a four-letter caller code; the backend maps it back to the number. Workers see the area and distance, never the customer's address, number or budget, until they are booked. Photos sit in a private bucket and go out as short-lived signed links.
-
-Job states: `draft → confirmed → inviting → quotes_in → booked → done`, plus `cancelled` and `no_workers`. Only the moves listed in `backend/src/core/jobs.ts` are allowed.
+- **Backend:** TypeScript on Node 24 with Express, plain SQL through postgres.js, and Zod checks at every boundary. Phone calls, WhatsApp and the web app all call the same core functions, so a booking behaves the same whichever way it was made.
+- **Every request is checked, saved, then deduplicated.** Bolna requests carry a token and Meta's are signed. Each one is stored raw before anything acts on it, so any run can be traced call by call, and repeats are ignored.
+- **Timers live in the database.** Every wait (start calling workers in a minute, give up on an unanswered call, expire an unpaid booking) is a time stored on the job. A loop acts on whatever is due, so a restart loses nothing.
+- **Job states:** `draft → confirmed → inviting → quotes_in → awaiting_payment → booked → done`, plus `cancelled` and `no_workers`. Only allowed moves can happen.
+- **Web app:** Next.js 16 with shadcn. The browser never talks to the backend directly; the Next.js server does, with a shared token and the user's session.
 
 ```
 backend/
   src/
-    routes/       bolna.ts, whatsapp.ts, app.ts       (HTTP in, auth, raw logging)
-    core/         card.ts                             (Bolna extraction → job card, worker quote)
-                  jobs.ts                             (job states, WhatsApp summary, follow-ups)
-                  quotes.ts, ranking.ts               (worker calls, scoring, shortlist, booking)
-                  lookup.ts, calls.ts                 (pre-call lookup, call status, prank limits)
-                  customer-app.ts, worker-app.ts      (web app actions)
-    clients/      bolna.ts, whatsapp.ts, maps.ts, storage.ts   (each with an offline stand-in)
-    db/           migrations/, seed.ts
-  messages/       en.json, hi.json                    (every WhatsApp line)
-  test/           unit tests; test/db/ for database tests
-  simulator/      signed request replays
-frontend/         Next.js 16 + shadcn: customer and worker web app
+    routes/     bolna.ts, whatsapp.ts, app.ts, pay.ts   (HTTP in: auth, raw logging)
+    core/       card.ts          (call extraction → job card, worker quote)
+                jobs.ts          (job states, WhatsApp summary, follow-up questions)
+                quotes.ts        (worker calls, shortlist)    ranking.ts (scoring)
+                bookings.ts      (booking fee, payment, booking)
+                cancellations.ts (cancelling, refunds, credit, travel pay)
+                customer-app.ts, worker-app.ts   (web app)
+    clients/    bolna, whatsapp, maps, storage, payments   (each with an offline stand-in)
+    db/         migrations/, seed.ts
+  messages/     en.json, hi.json   (every WhatsApp line, English and Hinglish)
+  test/         unit tests; test/db/ for database tests
+frontend/       Next.js customer and worker web app
 ```
+
+## Run it yourself
+
+You need Node 24, a Supabase project, a Bolna account with two agents (customer and worker), a Meta WhatsApp Cloud API number and a Google Maps key.
+
+```bash
+git clone https://github.com/sounishant/suvidha.git && cd suvidha
+cp .env.example .env                 # fill in every key
+
+cd backend
+npm install
+npm run migrate && npm run seed      # database schema, task catalogue, demo workers
+npm run create-photo-bucket          # private storage for job photos
+npm run dev                          # http://localhost:8080
+
+cd ../frontend
+npm install
+npm run dev                          # http://localhost:3000
+```
+
+For local testing, expose the backend with a tunnel (for example `cloudflared tunnel --url http://localhost:8080`) and point Bolna and Meta at it:
+
+| Endpoint | Used by |
+|---|---|
+| `/health` | Health check (backend and database) |
+| `/bolna/lookup/customer`, `/bolna/lookup/worker` | Bolna, before answering a call |
+| `/bolna/webhook/call` | Bolna, for every call update; the job card and quotes arrive here |
+| `/whatsapp/webhook` | Meta, for replies, button taps and photos |
+| `/pay/<id>` | Booking fee payment page |
+| `/app/*` | The web app's server only |
+
+The customer agent needs the "Job Card" extraction fields and the worker agent the "Quote" fields; the names the backend reads are in `backend/src/core/card.ts`. The web app reads `BACKEND_URL` and `APP_API_TOKEN`.
+
+**Tests:** `npm run typecheck`, `npm test` (93 unit tests) and `npm run test:db` (50 database tests, including full call-to-booking, payment and cancellation flows, in their own schema). `npm run sim` replays signed Bolna and WhatsApp requests against a running server.
+
+**Deploying:** the backend runs on Render as a single web service (root folder `backend`, build `npm ci`, start `npm run migrate && npm start`, health check `/health`, Node 24). It must never sleep, because its timer loop drives the worker calls, so an uptime monitor pings `/health` every 5 minutes. The web app runs on Vercel with `frontend` as the root folder and two settings: `BACKEND_URL` (the backend's address) and `APP_API_TOKEN` (the same token the backend has).
 
 ## Status
 
 | Area | State |
 |---|---|
 | Customer call → job card → WhatsApp summary and follow-ups | Working on real phones |
-| Worker calls, quotes, ranking, WhatsApp shortlist, booking | Working on real phones |
-| Photos stored privately and forwarded to workers | Working |
-| Customer and worker web app (login by WhatsApp code, quotes, start and finish codes, earnings) | Built; tested in the browser against the real backend on an isolated schema |
-| Booking fee, cancellations, refunds | Built on the `revenue-model` branch, not merged yet |
-| Live ops dashboard | Not built |
-| "Was it fixed?", rating, free redo | Not built |
-| Masked calling | Bolna call transfer while testing; Exotel later |
-| Languages | Hindi and Hinglish; regional languages later |
-| Outbound calling | Bolna trial account: only verified numbers, 2 calls at a time |
-| WhatsApp | Meta test number: about 5 recipients, free-form messages only inside the 24-hour window |
-
-## Deploying
-
-The backend has a Railway config (`backend/railway.json`) and runs as one always-on process, because its timer loop must never sleep. For the buildathon it runs on a laptop behind a Cloudflare quick tunnel, whose URL changes on every restart; Bolna and Meta then need the new URL. The web app is planned for Vercel.
+| Worker calls, one fixed price each, ranking, WhatsApp shortlist | Working on real phones |
+| Booking fee, cancellations, refunds, credit | Built and tested; payments in test mode |
+| Customer and worker web app | Built and tested against the real backend |
+| Photos stored privately and shared with workers | Working |
+| Languages | Hindi and Hinglish on calls; WhatsApp in Hinglish or English |
+| Next | Real UPI payments, "Was it fixed?" with ratings and free redo, a worker "available today" status, regional languages, masked calling |
 
 ## Team
 
-Built for the buildathon by the Suvidha team. Issues and suggestions are welcome on [GitHub](https://github.com/sounishant/suvidha).
+Built by the Suvidha team. Questions and suggestions are welcome on [GitHub](https://github.com/sounishant/suvidha).
