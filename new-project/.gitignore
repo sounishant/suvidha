@@ -1,0 +1,9 @@
+node_modules
+.next
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+.taste-skill
+.DS_Store
+.env*
+!.env.example

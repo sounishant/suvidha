@@ -11,6 +11,10 @@ export function maskPhone(phone: string) {
   return `…${phone.slice(-4)}`;
 }
 
+// The website demo's made-up numbers: no Indian mobile starts with 0 after +91, so none is a real person.
+export const SANDBOX_PREFIX = "+9100";
+export const isSandbox = (phone: string) => `+${phone.replace(/^\+/, "")}`.startsWith(SANDBOX_PREFIX);
+
 export function toWhatsApp(e164: string) {
   return e164.replace(/^\+/, "");
 }

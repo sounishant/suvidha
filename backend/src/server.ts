@@ -2,6 +2,7 @@ import postgres from "postgres";
 import { createApp } from "./app.ts";
 import { loadConfig } from "./config.ts";
 import { expirePayments } from "./core/bookings.ts";
+import { answerSandboxCalls } from "./core/demo.ts";
 import { expireQuoteCalls, startDueInvites } from "./core/quotes.ts";
 import { saveWebhook } from "./db/webhook-log.ts";
 import { coreServices } from "./services.ts";
@@ -26,7 +27,7 @@ let ticking = false;
 setInterval(() => {
   if (ticking) return;
   ticking = true;
-  Promise.all([startDueInvites(ctx), expireQuoteCalls(ctx), expirePayments(ctx)])
+  Promise.all([startDueInvites(ctx), expireQuoteCalls(ctx), expirePayments(ctx), answerSandboxCalls(ctx)])
     .catch((err: Error) => console.error(`tick failed: ${err.message}`))
     .finally(() => (ticking = false));
 }, config.TICK_SEC * 1000);

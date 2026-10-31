@@ -2,6 +2,7 @@ import type { Sql } from "postgres";
 import { bolnaApi, offlineBolna } from "./clients/bolna.ts";
 import { ROORKEE, googleMaps, offlineMaps } from "./clients/maps.ts";
 import { fakePayments } from "./clients/payments.ts";
+import { sandboxBolna, sandboxWhatsApp } from "./clients/sandbox.ts";
 import { offlineStorage, supabaseStorage } from "./clients/storage.ts";
 import { cloudWhatsApp, offlineWhatsApp } from "./clients/whatsapp.ts";
 import type { Config } from "./config.ts";
@@ -26,8 +27,8 @@ export function buildCtx(config: Config, sql: Sql, log: (line: string) => void):
 
   return {
     sql,
-    whatsapp,
-    bolna: config.BOLNA_API_KEY ? bolnaApi(config.BOLNA_API_KEY) : offlineBolna(log),
+    whatsapp: sandboxWhatsApp(whatsapp, sql),
+    bolna: sandboxBolna(config.BOLNA_API_KEY ? bolnaApi(config.BOLNA_API_KEY) : offlineBolna(log)),
     storage:
       config.SUPABASE_URL && config.SUPABASE_SERVICE_ROLE_KEY
         ? supabaseStorage({ url: config.SUPABASE_URL, serviceRoleKey: config.SUPABASE_SERVICE_ROLE_KEY })

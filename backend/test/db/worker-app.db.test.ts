@@ -25,7 +25,7 @@ const whatsapp: WhatsAppClient = {
 const background = backgroundTasks();
 const ctx: Ctx = {
   sql, whatsapp, payments: fakePayments("https://pay.test", () => {}),
-  bolna: { call: async () => "exec" } as BolnaClient,
+  bolna: { call: async () => "exec", webSession: async () => ({ run_id: "web" }) } as BolnaClient,
   storage: { upload: async () => true, signedUrl: async (path) => `https://photos.test/${path}` } as StorageClient,
   maps: { geocode: async () => null } as MapsClient,
   customerLine: null, workerLine: null, customerLineMode: "live",
