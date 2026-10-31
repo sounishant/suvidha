@@ -428,7 +428,8 @@ export function Compare() {
 function FooterLink({ href, label }: { href: string; label: string }) {
   const style = "btn border border-white/30 text-white hover:bg-white/10";
   if (!isSet(href)) return <span className={style}>{label}</span>;
-  if (href.startsWith("#") || href.startsWith("/")) {
+  // Sections and app pages open here; files such as the pitch video open in a new tab.
+  if (href.startsWith("#") || (href.startsWith("/") && !/\.\w+$/.test(href))) {
     return (
       <a href={href} className={style}>
         {label}
