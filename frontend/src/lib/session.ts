@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { backend } from "./api";
+import { backend, type WorkerHome } from "./api";
 import { SESSION_COOKIE } from "./session-cookie";
 
 const THIRTY_DAYS = 60 * 60 * 24 * 30;
@@ -46,3 +46,8 @@ export async function endSession() {
   (await cookies()).delete(SESSION_COOKIE);
 }
 
+export const workerHome = cache(async () => {
+  const { token, phone } = await requireWorker();
+  const { data } = await backend<WorkerHome>("/worker/home", { token });
+  return { ...data, phone };
+});

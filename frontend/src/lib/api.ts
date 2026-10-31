@@ -71,3 +71,44 @@ export async function backend<T>(path: string, { token, method = "GET", body }: 
   });
   return { status: res.status, data: (await res.json()) as T };
 }
+
+// Shapes of /worker/home (backend/src/core/worker-app.ts).
+export type PriceType = "fixed" | "range" | "visit_only";
+
+export type Invite = {
+  quoteRef: string;
+  jobRef: string;
+  trade: string;
+  title: string;
+  problem: string | null;
+  locality: string | null;
+  material: string | null;
+  safetyNote: string | null;
+  when: string;
+  distanceKm: number | null;
+  state: "open" | "sent" | "closed";
+  myQuote: { available: boolean | null; priceType: PriceType | null; priceMin: number | null; priceMax: number | null; visitCharge: number | null; arrives: string | null } | null;
+};
+
+export type ActiveJob = {
+  jobRef: string;
+  trade: string;
+  title: string;
+  problem: string | null;
+  address: string | null;
+  customer: string | null;
+  safetyNote: string | null;
+  when: string;
+  eta: string | null;
+  stage: "booked" | "on_the_way" | "working" | "done";
+  price: number | null;
+  priceMax: number | null;
+};
+
+export type WorkerHome = {
+  profile: { name: string; trades: string[]; verified: boolean; rating: number | null; online: boolean };
+  invites: Invite[];
+  active: ActiveJob[];
+  earnings: { jobs: number; total: number; monthJobs: number; monthTotal: number };
+  recent: { jobRef: string; trade: string; title: string; locality: string | null; closedAt: string; price: number | null }[];
+};
