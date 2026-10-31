@@ -13,7 +13,7 @@ const Env = z.object({
   TICK_SEC: z.coerce.number().positive().default(3),
   INVITE_DELAY_SEC: z.coerce.number().int().nonnegative().default(60),
   PARALLEL_CALLS: z.coerce.number().int().positive().default(2),
-  MAX_WORKER_CALLS: z.coerce.number().int().positive().default(6),
+  MAX_WORKER_CALLS: z.coerce.number().int().positive().default(4),
   QUOTES_WANTED: z.coerce.number().int().positive().default(3),
   CALL_TIMEOUT_SEC: z.coerce.number().int().positive().default(300),
   EXTRACTION_WAIT_SEC: z.coerce.number().int().positive().default(120),
