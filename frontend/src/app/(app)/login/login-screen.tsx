@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LoginPhone } from "@/components/login-phone";
+import { TradeCards } from "@/components/trade-cards";
 import { Logo } from "@/components/logo";
 import { CALL } from "@/lib/contact";
 import type { Role } from "./actions";
@@ -36,11 +36,13 @@ export function LoginScreen({ role }: { role: Role }) {
           )}
         </div>
       </section>
-      <section className="hidden flex-col items-center justify-center gap-8 bg-primary px-10 py-12 lg:flex">
-        <LoginPhone role={role} />
-        <p className="max-w-md text-center text-3xl font-semibold leading-tight tracking-[-0.03em] text-white">
-          {role === "customer" ? "Every home repair, one call away." : "Work nearby, at your price."}
-        </p>
+      <section className="hidden flex-col overflow-hidden bg-primary lg:flex">
+        <div className="flex flex-1 items-center justify-center px-10">
+          <p className="max-w-md text-center text-4xl leading-tight font-semibold tracking-[-0.03em] text-balance text-white">
+            {role === "customer" ? "Every household service, one call away." : "Work nearby, at your price."}
+          </p>
+        </div>
+        <TradeCards />
       </section>
     </main>
   );
