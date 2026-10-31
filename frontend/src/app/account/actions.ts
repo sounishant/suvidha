@@ -12,7 +12,7 @@ export async function logout() {
 
 export async function bookWorker(jobRef: string, quoteRef: string) {
   const { token } = await requireCustomer();
-  const { data } = await backend<{ ok: boolean }>(`/customer/jobs/${encodeURIComponent(jobRef)}/book`, {
+  const { data } = await backend<{ ok: boolean; payUrl?: string | null }>(`/customer/jobs/${encodeURIComponent(jobRef)}/book`, {
     method: "POST",
     token,
     body: { quoteRef },
@@ -21,6 +21,8 @@ export async function bookWorker(jobRef: string, quoteRef: string) {
   // Another tap may have booked first, or the quote is no longer open.
   if (!data.ok) redirect(`/account/jobs/${encodeURIComponent(jobRef)}?book=failed`);
   revalidatePath(`/account/jobs/${jobRef}`);
+  // No link means credit already paid the fee and the booking is made.
+  if (data.payUrl) redirect(data.payUrl);
 }
 
 export type NameState = { error: string | null; saved: boolean };

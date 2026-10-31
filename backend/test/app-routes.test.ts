@@ -76,7 +76,7 @@ describe("web app routes", () => {
   it("book through the shared core function", async () => {
     expect((await call("POST", "/customer/jobs/MINE/book", signedIn, {})).status).toBe(400);
     const res = await call("POST", "/customer/jobs/MINE/book", signedIn, { quoteRef: "Q7K2" });
-    expect(await res.json()).toEqual({ ok: true });
+    expect(await res.json()).toEqual({ ok: true, payUrl: "https://pay.test/pay/p1" });
     expect(app.calls.at(-1)).toEqual({ name: "bookForCustomer", input: expect.objectContaining({ id: "s1" }) });
   });
 });

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { BolnaClient } from "../../src/clients/bolna.ts";
 import type { MapsClient } from "../../src/clients/maps.ts";
+import { fakePayments } from "../../src/clients/payments.ts";
 import type { StorageClient } from "../../src/clients/storage.ts";
 import type { WhatsAppClient } from "../../src/clients/whatsapp.ts";
 import type { Session } from "../../src/core/app-login.ts";
@@ -23,13 +24,13 @@ const whatsapp: WhatsAppClient = {
 };
 const background = backgroundTasks();
 const ctx: Ctx = {
-  sql, whatsapp,
+  sql, whatsapp, payments: fakePayments("https://pay.test"),
   bolna: { call: async () => "exec" } as BolnaClient,
   storage: { upload: async () => true, signedUrl: async () => "" } as StorageClient,
   maps: { geocode: async () => null } as MapsClient,
   customerLine: null, workerLine: null, customerLineMode: "live",
   // Two calls already placed and no room for more, so the job finishes as soon as both answer.
-  limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 2, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120 },
+  limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 2, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120, paymentWindowSec: 300 },
   now: () => new Date(),
   log: () => {},
   background: background.run,
@@ -88,7 +89,9 @@ describe("worker app", () => {
 
   it("walks a booking through trip, start code, done and finish code", async () => {
     const asha = await login(CUSTOMER, "customer");
-    expect(await services.bookForCustomer(asha, "WJOB", "WQ0")).toBe(true);
+    const { payUrl } = (await services.bookForCustomer(asha, "WJOB", "WQ0")) as { payUrl: string };
+    expect(await services.payBooking(payUrl.split("/").at(-1)!)).toBe("paid");
+    await background.settle();
     const [codes] = await sql<{ start_otp: string; completion_otp: string }[]>`select start_otp, completion_otp from bookings`;
 
     let home = await services.workerHome(nishant);

@@ -1,8 +1,9 @@
 import { whenLabel } from "../messages.ts";
 import type { Session } from "./app-login.ts";
+import { chooseQuote } from "./bookings.ts";
 import type { Ctx } from "./context.ts";
+import { bookingFee } from "./fees.ts";
 import { jobLabel, whenText, type JobStatus } from "./jobs.ts";
-import { bookQuote } from "./quotes.ts";
 
 // The web app speaks Hinglish, which is what the "hi" copy file holds for job labels and times.
 const APP_LANG = "hi";
@@ -115,6 +116,9 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
            b.started_at, b.done_at, b.closed_at, b.fixed, b.final_price_inr
     from bookings b join workers w on w.id = b.worker_id where b.job_id = ${job.id}`;
 
+  const [payment] = await ctx.sql<{ amount_inr: number; link: string | null }[]>`
+    select amount_inr, link from payments where job_id = ${job.id} and status = 'pending' and expires_at > ${now}`;
+
   return {
     ...summary(job, now),
     problem: job.problem,
@@ -130,6 +134,7 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
       priceType: q.price_type,
       price: q.price,
       visitCharge: q.visit_charge,
+      fee: bookingFee(q.price ?? q.visit_charge ?? 0),
       materialIncluded: q.material_included,
       arrives: q.earliest_arrival ? whenLabel(APP_LANG, q.earliest_arrival, now) : null,
       distanceKm: q.distance_km,
@@ -137,6 +142,7 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
       reason: q.rank_reason,
       note: q.note,
     })),
+    payment: payment?.link ? { amount: payment.amount_inr, url: payment.link } : null,
     booking: booking
       ? {
           worker: booking.worker_name,
@@ -163,11 +169,11 @@ export async function setCustomerName(ctx: Ctx, session: Session, name: string) 
   await ctx.sql`update customers set name = ${name} where id = ${session.customerId}`;
 }
 
-// The same booking the WhatsApp list makes; the quote must belong to this customer's job.
+// The same choice the WhatsApp list makes; the quote must belong to this customer's job.
 export async function bookForCustomer(ctx: Ctx, session: Session, jobRef: string, quoteRef: string) {
   const [match] = await ctx.sql`
     select 1 from quotes q join jobs j on j.id = q.job_id
     where q.ref = ${quoteRef} and j.ref = ${jobRef} and j.customer_id = ${session.customerId}`;
   if (!match) return false;
-  return bookQuote(ctx, session.phone, quoteRef);
+  return chooseQuote(ctx, session.phone, quoteRef);
 }

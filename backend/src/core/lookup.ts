@@ -77,13 +77,14 @@ export async function lookupCustomer(ctx: Ctx, caller: Caller) {
       from jobs j
       left join bookings b on b.job_id = j.id
       left join workers w on w.id = b.worker_id
-      where j.customer_id = ${customer.id} and j.status in ('draft', 'confirmed', 'inviting', 'quotes_in', 'booked')
+      where j.customer_id = ${customer.id} and j.status in ('draft', 'confirmed', 'inviting', 'quotes_in', 'awaiting_payment', 'booked')
       order by j.created_at desc limit 1`;
     if (job) {
       const trade = tradeName(lang, job.trade);
       openJob =
         job.status === "draft" ? say(lang, "open_job_draft", { trade })
         : job.status === "quotes_in" ? say(lang, "open_job_quotes")
+        : job.status === "awaiting_payment" ? say(lang, "open_job_payment")
         : job.status === "booked" && job.eta_at ? say(lang, "open_job_booked", { trade, worker: job.worker!, eta: istClock(job.eta_at) })
         : job.status === "booked" ? say(lang, "open_job_booked_no_eta", { trade, worker: job.worker! })
         : say(lang, "open_job_inviting", { trade });

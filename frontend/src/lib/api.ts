@@ -1,7 +1,7 @@
 import "server-only";
 
 // Shapes the backend's /app routes return (backend/src/core/customer-app.ts).
-export type JobStatus = "draft" | "confirmed" | "inviting" | "quotes_in" | "booked" | "done" | "cancelled" | "no_workers";
+export type JobStatus = "draft" | "confirmed" | "inviting" | "quotes_in" | "awaiting_payment" | "booked" | "done" | "cancelled" | "no_workers";
 
 export type JobSummary = {
   ref: string;
@@ -24,6 +24,7 @@ export type Quote = {
   priceType: "fixed" | "visit_only" | null;
   price: number | null;
   visitCharge: number | null;
+  fee: number;
   materialIncluded: "yes" | "no" | "partly" | null;
   arrives: string | null;
   distanceKm: number | null;
@@ -51,6 +52,7 @@ export type JobDetail = JobSummary & {
   safetyNote: string | null;
   budget: number | null;
   quotes: Quote[];
+  payment: { amount: number; url: string } | null;
   booking: Booking | null;
 };
 

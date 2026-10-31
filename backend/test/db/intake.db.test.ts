@@ -6,12 +6,14 @@ import type { MapsClient } from "../../src/clients/maps.ts";
 import type { StorageClient } from "../../src/clients/storage.ts";
 import type { ListMessage, WhatsAppClient } from "../../src/clients/whatsapp.ts";
 import type { Ctx } from "../../src/core/context.ts";
+import { expirePayments } from "../../src/core/bookings.ts";
 import { expireQuoteCalls, startDueInvites } from "../../src/core/quotes.ts";
 import { migrate } from "../../src/db/migrate.ts";
 import { seed } from "../../src/db/seed.ts";
 import { saveWebhook } from "../../src/db/webhook-log.ts";
 import { whatsappSignature } from "../../src/http/auth.ts";
 import { coreServices } from "../../src/services.ts";
+import { fakePayments } from "../../src/clients/payments.ts";
 import { backgroundTasks, secrets } from "../helpers.ts";
 import { resetDb, testSql } from "./helpers.ts";
 
@@ -51,11 +53,11 @@ const bolna: BolnaClient = {
 
 const background = backgroundTasks();
 const ctx: Ctx = {
-  sql, whatsapp, bolna, storage, maps,
+  sql, whatsapp, bolna, storage, maps, payments: fakePayments("https://pay.test"),
   customerLine: { agentId: "agent-customer", number: "+918000000000" },
   workerLine: { agentId: "agent-worker", number: "+918000000000" },
   customerLineMode: "live",
-  limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 6, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120 },
+  limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 6, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120, paymentWindowSec: 300 },
   now: () => clock,
   log: () => {},
   background: background.run,
@@ -149,6 +151,7 @@ async function tick(at: Date) {
   clock = at;
   await startDueInvites(ctx);
   await expireQuoteCalls(ctx);
+  await expirePayments(ctx);
   await background.settle();
 }
 
@@ -236,19 +239,32 @@ describe("a complete intake call", () => {
     expect(shortlist!.n).toBe(1);
   });
 
-  it("books the tapped worker once; the worker gets the address and the others are told", async () => {
+  it("asks for the booking fee when the customer taps a worker, and books once it is paid", async () => {
     const ref = (await sql`select q.ref from quotes q join workers w on w.id = q.worker_id where q.job_id = ${jobId} and w.name = 'Sanskar'`)[0]!.ref;
     await tap("919100000099", `book:${ref}`);
     expect((await job(jobId)).status).toBe("quotes_in");
 
     await tap("919100000001", `book:${ref}`);
+    expect((await job(jobId)).status).toBe("awaiting_payment");
+    const request = sent.filter((s) => s.to === "919100000001").at(-1)!.text;
+    const link = request.match(/https:\/\/pay\.test\/pay\/(\S+)/)!;
+    expect(request).toContain("Booking fee: ₹29");
+    expect(request).toContain("₹350");
+    expect(await sql`select fee_inr, credit_inr, amount_inr, status from payments where job_id = ${jobId}`).toEqual([
+      { fee_inr: 29, credit_inr: 0, amount_inr: 29, status: "pending" },
+    ]);
+
+    expect(await (await fetch(`${url}/pay/${link[1]}`)).text()).toContain("Pay ₹29");
+    expect(await (await fetch(`${url}/pay/${link[1]}`, { method: "POST" })).text()).toContain("Paid");
+    await background.settle();
     expect(await job(jobId)).toMatchObject({ status: "booked", price_inr: 350 });
     const [booking] = await sql`select start_otp, eta_at from bookings where job_id = ${jobId}`;
     expect(booking!.eta_at).toEqual(new Date("2026-10-27T12:00:00Z"));
-    expect(sent.find((s) => s.to === "919100000001")!.text).toContain(booking!.start_otp);
-    expect(sent.find((s) => s.to === "919000000003")!.text).toContain("Civil Lines, Roorkee, near Gurudwara");
+    expect(sent.filter((s) => s.to === "919100000001").at(-1)!.text).toContain(booking!.start_otp);
+    expect(sent.find((s) => s.to === "919000000003" && s.text.includes("Kaam confirm ho gaya"))!.text).toContain("Civil Lines, Roorkee, near Gurudwara");
     expect(sent.filter((s) => s.text.includes("kisi aur worker")).map((s) => s.to).sort()).toEqual(["919000000103", "919000000104"]);
 
+    expect(await (await fetch(`${url}/pay/${link[1]}`, { method: "POST" })).text()).toContain("Already paid");
     await tap("919100000001", `book:${ref}`);
     expect((await sql`select count(*)::int as n from bookings where job_id = ${jobId}`)[0]!.n).toBe(1);
   });
@@ -287,11 +303,50 @@ describe("the shortlist message", () => {
       ["Visit ke baad rate", ["3. Bhola"]],
     ]);
     expect(shortlist.list!.sections[0]!.rows[0]!.id).toMatch(/^book:[A-Z2-9]{4}$/);
-    expect(shortlist.text).toContain("₹350");
-    expect(shortlist.text).toContain("₹380");
+    expect(shortlist.text).toContain("₹350 + ₹29 fee");
+    expect(shortlist.text).toContain("₹380 + ₹29 fee");
     expect(shortlist.text).toContain("saaman alag se");
-    expect(shortlist.text).toContain("Visit charge ₹100");
+    expect(shortlist.text).toContain("Visit charge ₹100 + ₹29 fee");
     expect(shortlist.text).toContain("Photo nahi mili");
+  });
+});
+
+describe("the booking fee", () => {
+  async function quotedJob(phone: string) {
+    ctx.limits.maxWorkerCalls = 4;
+    const j = await intakeCall(phone);
+    await tick(inSeconds(61));
+    await quoteCall(j.id, SANSKAR, { available: "yes", price: "350", earliest_arrival: "2026-10-27T17:30" });
+    await quoteCall(j.id, "+919000000101", { available: "yes", price: "2400", earliest_arrival: "2026-10-27T18:00" });
+    await unanswered(j.id, "+919000000102");
+    await unanswered(j.id, "+919000000103");
+    expect((await job(j.id)).status).toBe("quotes_in");
+    const refs = await sql`select w.name, q.ref from quotes q join workers w on w.id = q.worker_id where q.job_id = ${j.id}`;
+    return { id: j.id, ref: (name: string) => refs.find((r) => r.name === name)!.ref as string };
+  }
+
+  it("gives the customer 5 minutes to pay, then shows the quotes again", async () => {
+    const j = await quotedJob("+919100000021");
+    await tap("919100000021", `book:${j.ref("Sanskar")}`);
+    await tick(inSeconds(61 + 299));
+    expect((await job(j.id)).status).toBe("awaiting_payment");
+    await tick(inSeconds(61 + 301));
+    expect((await job(j.id)).status).toBe("quotes_in");
+    expect(sent.filter((s) => s.to === "919100000021").at(-1)!.text).toContain("time khatam");
+    const [p] = await sql`select id, status from payments where job_id = ${j.id}`;
+    expect(p!.status).toBe("expired");
+    expect(await (await fetch(`${url}/pay/${p!.id}`, { method: "POST" })).text()).toContain("expired");
+    expect((await job(j.id)).status).toBe("quotes_in");
+  });
+
+  it("replaces the waiting payment when the customer chooses someone else, with the fee for that price", async () => {
+    const j = await quotedJob("+919100000022");
+    await tap("919100000022", `book:${j.ref("Sanskar")}`);
+    await tap("919100000022", `book:${j.ref("Arjun")}`);
+    expect(await sql`select fee_inr, status from payments where job_id = ${j.id} order by created_at`).toEqual([
+      { fee_inr: 29, status: "expired" }, { fee_inr: 99, status: "pending" },
+    ]);
+    expect((await job(j.id)).status).toBe("awaiting_payment");
   });
 });
 

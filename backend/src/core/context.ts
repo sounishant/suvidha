@@ -1,6 +1,7 @@
 import type { Sql } from "postgres";
 import type { BolnaClient } from "../clients/bolna.ts";
 import type { MapsClient } from "../clients/maps.ts";
+import type { PaymentGateway } from "../clients/payments.ts";
 import type { StorageClient } from "../clients/storage.ts";
 import type { WhatsAppClient } from "../clients/whatsapp.ts";
 
@@ -13,6 +14,7 @@ export type Limits = {
   quotesWanted: number;
   callTimeoutSec: number;
   extractionWaitSec: number;
+  paymentWindowSec: number;
 };
 
 export type Ctx = {
@@ -21,6 +23,7 @@ export type Ctx = {
   bolna: BolnaClient;
   storage: StorageClient;
   maps: MapsClient;
+  payments: PaymentGateway;
   // Null until the agent and a number to call from exist in Bolna.
   customerLine: Line | null;
   workerLine: Line | null;

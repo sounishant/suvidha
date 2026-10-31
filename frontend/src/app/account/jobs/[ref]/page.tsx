@@ -54,9 +54,17 @@ async function Job({ params, searchParams }: Pick<PageProps<"/account/jobs/[ref]
         </p>
       )}
 
+      {job.payment && (
+        <section aria-labelledby="payment" className="grid gap-3 rounded-2xl border border-primary bg-white p-5 ring-2 ring-primary/15 sm:p-6">
+          <h2 id="payment" className="text-lg font-semibold">Booking fee: {rupees(job.payment.amount)}</h2>
+          <p className="text-muted-foreground">Fee pay hote hi booking pakki ho jaayegi aur start code mil jaayega. Kaarigar ka daam aap kaam ke baad seedha use denge.</p>
+          <a href={job.payment.url} className={cn(buttonVariants(), "h-12 rounded-xl text-base")}>Booking fee pay kijiye</a>
+        </section>
+      )}
+
       {job.booking && <BookingCard booking={job.booking} />}
 
-      {job.status === "quotes_in" && job.quotes.length > 0 && (
+      {(job.status === "quotes_in" || job.status === "awaiting_payment") && job.quotes.length > 0 && (
         <section aria-labelledby="quotes" className="grid gap-3">
           <h2 id="quotes" className="text-xl font-semibold tracking-[-0.02em]">{job.quotes.length} daam aaye hain</h2>
           <p className="-mt-1 text-sm text-muted-foreground">Aapki pasand ke hisaab se sabse achha upar hai.</p>
@@ -111,7 +119,10 @@ function QuoteCard({ quote, top, action }: { quote: Quote; top: boolean; action:
             {quote.distanceKm !== null ? ` · ${quote.distanceKm.toFixed(1)} km door` : ""}
           </p>
         </div>
-        <p className="text-right text-xl font-semibold tabular-nums">{quotePrice(quote)}</p>
+        <div className="text-right">
+          <p className="text-xl font-semibold tabular-nums">{quotePrice(quote)}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">+ {rupees(quote.fee)} booking fee</p>
+        </div>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
         {quote.arrives && (

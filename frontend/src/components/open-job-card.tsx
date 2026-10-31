@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export function OpenJobCard({ job }: { job: JobSummary }) {
   const text = STATUS[job.status];
-  const urgent = job.status === "quotes_in" || job.status === "booked";
+  const urgent = job.status === "quotes_in" || job.status === "awaiting_payment" || job.status === "booked";
   return (
     <article className="grid gap-5 rounded-2xl border bg-white p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
@@ -29,7 +29,7 @@ export function OpenJobCard({ job }: { job: JobSummary }) {
         </p>
       )}
       <Link href={`/account/jobs/${job.ref}`} className={cn(buttonVariants({ variant: urgent ? "default" : "secondary" }), "h-12 rounded-xl text-base")}>
-        {job.status === "quotes_in" ? "Daam dekhiye aur chuniye" : job.status === "booked" ? "Start code dekhiye" : "Poori jaankari"}
+        {job.status === "quotes_in" ? "Daam dekhiye aur chuniye" : job.status === "awaiting_payment" ? "Booking fee pay kijiye" : job.status === "booked" ? "Start code dekhiye" : "Poori jaankari"}
       </Link>
     </article>
   );

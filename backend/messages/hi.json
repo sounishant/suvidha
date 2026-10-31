@@ -52,7 +52,8 @@
     "open_job_quotes": "आपके काम के rates WhatsApp पर भेज दिए हैं, वहीं से worker चुन लीजिए।",
     "open_job_booked": "{trade} {worker} जी आपका काम करेंगे, लगभग {eta} तक।",
     "open_job_booked_no_eta": "{trade} {worker} जी आपका काम करेंगे।",
-    "worker_booked_job": "{name} जी, आपका booked काम: {problem}, {locality}।"
+    "worker_booked_job": "{name} जी, आपका booked काम: {problem}, {locality}।",
+    "open_job_payment": "आपने worker चुन लिया है। WhatsApp पर भेजे link से booking fee pay कर दीजिए, फिर booking पक्की हो जाएगी।"
   },
   "whatsapp": {
     "none": "—",
@@ -77,11 +78,10 @@
     "shortlist_intro": "*{job}* ke liye rates:",
     "shortlist_line": "{n}. *{name}* - {price}\n    Aayenge: {when} · Rating {rating}\n    {reason}{labels}",
     "shortlist_visit_title": "Kaam dekhne ke baad rate batayenge:",
-    "shortlist_visit_line": "- *{name}* · Aayenge: {when} · Rating {rating}{visit}",
-    "visit_charge": " · Visit charge ₹{price}",
+    "shortlist_visit_line": "- *{name}* · {visit} · Aayenge: {when} · Rating {rating}",
     "shortlist_later": "{count} aur worker aapke diye time ke baad hi aa sakte hain. Unke naam list mein sabse neeche hain.",
     "shortlist_no_photo": "Dhyan dein: Photo nahi mili, isliye yeh rates aapki call ki jaankari par hain.",
-    "shortlist_footer": "Book karne ke liye *Worker chuniye* dabaiye.",
+    "shortlist_footer": "Book karne ke liye *Worker chuniye* dabaiye. Fee Suvidha ki booking fee hai, jo worker chunne ke baad deni hogi. Worker ka rate aap kaam ke baad seedha worker ko denge.",
     "list_button": "Worker chuniye",
     "section_ranked": "Rates",
     "section_visit": "Visit ke baad rate",
@@ -98,7 +98,7 @@
     "reason_quality_best": "Sabse achhi rating: {rating}",
     "reason_quality": "Rating: {rating}",
     "reason_but_later": ", lekin {when} aayenge",
-    "booked_customer": "*Booking confirm ho gayi*\nWorker: {name}\nAane ka time: {when}\nRate: {price}\nStart code: *{otp}*\n\nStart code worker ke pahunchne par hi bataiye. Worker se baat karni ho to Suvidha number par call kijiye.",
+    "booked_customer": "*Booking confirm ho gayi*\nWorker: {name}\nAane ka time: {when}\nRate: {price} (kaam ke baad seedha worker ko dijiye)\nBooking fee: ₹{fee} (pay ho gayi){credit}\nStart code: *{otp}*\n\nStart code worker ke pahunchne par hi bataiye. Worker se baat karni ho to Suvidha number par call kijiye.",
     "booked_worker": "*Kaam confirm ho gaya*\nKaam: {job}\nJaankari: {problem}\nAddress: {address}\nTime: {when}\nSite par: {contact}{safety}\n\nKaam shuru karne se pehle customer se start code lijiye. Customer se baat karni ho to Suvidha number par call kijiye.",
     "safety_line": "\nDhyan dein: {note}",
     "not_chosen_worker": "Rate dene ke liye dhanyavaad. Is baar customer ne kisi aur worker ko book kiya hai.",
@@ -106,6 +106,14 @@
     "worker_customer_update": "*Customer ki taraf se update*\nKaam: {job}\n{note}",
     "login_code": "Aapka Suvidha login code *{code}* hai. Yeh 10 minute tak valid hai. Yeh code kisi ke saath share na karein.",
     "on_the_way_customer": "*{name} aapke kaam ke liye nikal chuke hain*\nKaam: {job}\nPahunchne par unhe start code bataiye: *{otp}*",
-    "finish_code_customer": "*Kaam poora hone ki soochna*\n{name} ne aapka kaam ({job}) poora bataya hai.\nFinal rate: {price}\n\nKaam theek laga ho to unhe yeh finish code bataiye: *{otp}*\nTheek na laga ho to code mat dijiye. Yahan reply kijiye, hum madad karenge."
+    "finish_code_customer": "*Kaam poora hone ki soochna*\n{name} ne aapka kaam ({job}) poora bataya hai.\nFinal rate: {price}\n\nKaam theek laga ho to unhe yeh finish code bataiye: *{otp}*\nTheek na laga ho to code mat dijiye. Yahan reply kijiye, hum madad karenge.",
+    "price_with_fee": "₹{price} + ₹{fee} fee",
+    "visit_with_fee": "Visit charge ₹{price} + ₹{fee} fee",
+    "fee_only": "₹{fee} fee",
+    "visit_price": "Visit charge ₹{price}",
+    "payment_request": "*Booking fee pay kijiye*\nWorker: {name}\nBooking fee: ₹{fee}{credit}\nYahan pay kijiye: {link}\n\nLink {minutes} minute tak valid hai. Fee pay hote hi booking confirm ho jaayegi aur aapko start code mil jaayega. Worker ka rate ({price}) aap kaam ke baad seedha worker ko denge.",
+    "credit_applied": " (₹{credit} aapke credit se, ab ₹{amount} baaki)",
+    "payment_expired": "*Booking confirm nahi hui*\nBooking fee ka time khatam ho gaya, isliye booking nahi hui. Upar wali list se worker dobara chun sakte hain.",
+    "credit_balance": "\nSuvidha credit: ₹{credit} (kabhi expire nahi hota, agli booking mein lagega)"
   }
 }

@@ -3,6 +3,7 @@ import type { Config } from "./config.ts";
 import type { SaveWebhook } from "./http/webhook-log.ts";
 import { appRouter } from "./routes/app.ts";
 import { bolnaRouter } from "./routes/bolna.ts";
+import { payRouter } from "./routes/pay.ts";
 import { whatsappRouter } from "./routes/whatsapp.ts";
 import type { Services } from "./services.ts";
 
@@ -50,6 +51,7 @@ export function createApp(deps: AppDeps) {
   );
 
   app.use("/app", appRouter({ appToken: deps.secrets.APP_API_TOKEN, services: deps.services }));
+  app.use("/pay", payRouter(deps.services));
 
   return app;
 }

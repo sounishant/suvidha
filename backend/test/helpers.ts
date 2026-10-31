@@ -53,7 +53,7 @@ export function stubServices() {
       calls.push({ name: "customerJob", input: ref });
       return ref === "MINE" ? ({ ref } as never) : null;
     },
-    bookForCustomer: record("bookForCustomer", true),
+    bookForCustomer: record("bookForCustomer", { payUrl: "https://pay.test/pay/p1" }),
     customerProfile: record("customerProfile", { phone: "+919876543210", name: "Asha" }),
     setCustomerName: record("setCustomerName", undefined),
     workerHome: record("workerHome", { profile: { name: "Nishant", trades: ["electrician"], verified: true, rating: null, online: true }, invites: [], active: [], earnings: { jobs: 0, total: 0, monthJobs: 0, monthTotal: 0 }, recent: [] }),
@@ -63,6 +63,8 @@ export function stubServices() {
       calls.push({ name: "bookingStep", input: step });
       return { ok: true as const };
     },
+    paymentView: record("paymentView", null),
+    payBooking: record("payBooking", "expired" as const),
   };
   return { services, calls };
 }

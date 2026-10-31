@@ -8,14 +8,17 @@ import { toWhatsApp } from "./phone.ts";
 import type { Priority } from "./ranking.ts";
 import { withFreshRef } from "./refs.ts";
 
-export type JobStatus = "draft" | "confirmed" | "inviting" | "quotes_in" | "booked" | "done" | "cancelled" | "no_workers";
+export type JobStatus =
+  "draft" | "confirmed" | "inviting" | "quotes_in" | "awaiting_payment" | "booked" | "done" | "cancelled" | "no_workers";
 
 // The only moves a job may make. A job starts as draft, or confirmed when the call filled every required field.
 export const TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   draft: ["confirmed", "cancelled"],
   confirmed: ["inviting", "cancelled"],
   inviting: ["quotes_in", "no_workers", "cancelled"],
-  quotes_in: ["booked", "cancelled"],
+  quotes_in: ["awaiting_payment", "cancelled"],
+  // Back to quotes_in when the payment window runs out, so the customer can choose again.
+  awaiting_payment: ["booked", "quotes_in", "cancelled"],
   no_workers: ["inviting", "cancelled"],
   booked: ["done", "cancelled"],
   done: [],
@@ -84,7 +87,7 @@ async function locate(ctx: Ctx, address: string | null) {
   });
 }
 
-const OPEN_STATUSES: JobStatus[] = ["draft", "confirmed", "inviting", "quotes_in", "booked"];
+const OPEN_STATUSES: JobStatus[] = ["draft", "confirmed", "inviting", "quotes_in", "awaiting_payment", "booked"];
 
 // Built once per intake call from Bolna's extraction; the caller's confirmed read-back is the source of truth.
 export async function jobFromCall(ctx: Ctx, call: { executionId: string; phone: string; callerRef: string | null; extraction: unknown }) {
@@ -237,7 +240,7 @@ export async function answerFollowup(ctx: Ctx, phone: string, text: string) {
 export async function noteCustomerChange(ctx: Ctx, phone: string, text: string) {
   const [job] = await ctx.sql<{ id: string }[]>`
     select j.id from jobs j join customers c on c.id = j.customer_id
-    where c.phone = ${phone} and j.status in ('confirmed', 'inviting', 'quotes_in')
+    where c.phone = ${phone} and j.status in ('confirmed', 'inviting', 'quotes_in', 'awaiting_payment')
     order by j.created_at desc limit 1`;
   if (!job) return false;
   await ctx.sql`update jobs set customer_notes = array_append(customer_notes, ${text}), updated_at = now() where id = ${job.id}`;

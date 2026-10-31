@@ -1,4 +1,5 @@
 import { endSession, sessionFor, startLogin, verifyLogin, type Role, type Session } from "./core/app-login.ts";
+import { payBooking, paymentView, type PaymentView } from "./core/bookings.ts";
 import { recordCallStatus, type CallStatus } from "./core/calls.ts";
 import type { Ctx, FnReply } from "./core/context.ts";
 import { bookForCustomer, customerJob, customerJobs, customerProfile, setCustomerName } from "./core/customer-app.ts";
@@ -22,13 +23,15 @@ export type Services = {
   endSession(sessionId: string): Promise<void>;
   customerJobs(session: Session): ReturnType<typeof customerJobs>;
   customerJob(session: Session, ref: string): ReturnType<typeof customerJob>;
-  bookForCustomer(session: Session, jobRef: string, quoteRef: string): Promise<boolean>;
+  bookForCustomer(session: Session, jobRef: string, quoteRef: string): ReturnType<typeof bookForCustomer>;
   customerProfile(session: Session): ReturnType<typeof customerProfile>;
   setCustomerName(session: Session, name: string): Promise<void>;
   workerHome(session: Session): ReturnType<typeof workerHome>;
   setOnline(session: Session, online: boolean): Promise<void>;
   quoteFromApp(session: Session, quoteRef: string, quote: AppQuote): Promise<boolean>;
   bookingStep(session: Session, jobRef: string, step: BookingStep): Promise<StepReply>;
+  paymentView(paymentId: string): Promise<PaymentView | null>;
+  payBooking(paymentId: string): Promise<"paid" | "expired">;
 };
 
 export type BookingStep =
@@ -61,5 +64,7 @@ export function coreServices(ctx: Ctx): Services {
       : step.kind === "start" ? startWork(ctx, session, jobRef, step.code)
       : step.kind === "done" ? markDone(ctx, session, jobRef, step.finalPrice)
       : finishJob(ctx, session, jobRef, step.code),
+    paymentView: (id) => paymentView(ctx, id),
+    payBooking: (id) => payBooking(ctx, id),
   };
 }

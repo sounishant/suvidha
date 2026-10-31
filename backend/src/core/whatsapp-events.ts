@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { chooseQuote } from "./bookings.ts";
 import type { Ctx } from "./context.ts";
 import { addPhoto, answerFollowup, noteCustomerChange } from "./jobs.ts";
 import { toE164 } from "./phone.ts";
-import { bookQuote, forwardPhoto } from "./quotes.ts";
+import { forwardPhoto } from "./quotes.ts";
 
 const Message = z.object({
   from: z.string(),
@@ -39,7 +40,7 @@ export async function handleWhatsApp(ctx: Ctx, body: unknown) {
     await ctx.sql`update customers set has_whatsapp = true where phone = ${phone}`;
     const choice = message.interactive?.list_reply?.id ?? message.interactive?.button_reply?.id ?? "";
     if (choice.startsWith("book:")) {
-      await bookQuote(ctx, phone, choice.slice("book:".length));
+      await chooseQuote(ctx, phone, choice.slice("book:".length));
     } else if (message.type === "image" && message.image) {
       const photo = await addPhoto(ctx, phone, message.image.id);
       if (photo?.path && (photo.status === "inviting" || photo.status === "quotes_in")) await forwardPhoto(ctx, photo.jobId);

@@ -7,6 +7,7 @@ export const STATUS: Record<JobStatus, StatusText> = {
   confirmed: { label: "Card taiyaar", line: "Aapka kaam ka card ban gaya. Ek minute mein kaarigaron ko call shuru hogi.", open: true },
   inviting: { label: "Kaarigar dhoondh rahe hain", line: "Paas ke kaarigaron se daam le rahe hain. Teen daam aate hi aapko batayenge.", open: true },
   quotes_in: { label: "Daam aa gaye", line: "Neeche daam dekhiye aur jo kaarigar theek lage, use chuniye.", open: true },
+  awaiting_payment: { label: "Booking fee baaki", line: "Booking fee pay kijiye, phir booking pakki ho jaayegi. Link WhatsApp pe bhi bheja hai.", open: true },
   booked: { label: "Kaarigar booked", line: "Kaarigar aa raha hai. Pahunchne pe use start code bataiye.", open: true },
   done: { label: "Kaam ho gaya", line: "Ye kaam poora ho chuka hai.", open: false },
   cancelled: { label: "Cancel hua", line: "Ye kaam cancel ho gaya.", open: false },
@@ -18,7 +19,7 @@ export const STEPS = ["Card bana", "Daam aa rahe", "Kaarigar chuna", "Kaam ho ga
 export function stepOf(status: JobStatus) {
   if (status === "draft" || status === "confirmed") return 0;
   if (status === "inviting" || status === "quotes_in") return 1;
-  if (status === "booked") return 2;
+  if (status === "awaiting_payment" || status === "booked") return 2;
   return 3;
 }
 

@@ -52,7 +52,8 @@
     "open_job_quotes": "We've sent the rates for your job on WhatsApp; please pick a worker there.",
     "open_job_booked": "{trade} {worker} will do your job, arriving by about {eta}.",
     "open_job_booked_no_eta": "{trade} {worker} will do your job.",
-    "worker_booked_job": "{name}, your booked job: {problem}, {locality}."
+    "worker_booked_job": "{name}, your booked job: {problem}, {locality}.",
+    "open_job_payment": "You've chosen a worker. Pay the booking fee from the link on WhatsApp and your booking will be confirmed."
   },
   "whatsapp": {
     "none": "—",
@@ -77,11 +78,10 @@
     "shortlist_intro": "Here are the rates for *{job}*:",
     "shortlist_line": "{n}. *{name}* - {price}\n    Arrives {when} · Rating {rating}\n    {reason}{labels}",
     "shortlist_visit_title": "Will quote after seeing the work:",
-    "shortlist_visit_line": "- *{name}* · Arrives {when} · Rating {rating}{visit}",
-    "visit_charge": " · Visit charge ₹{price}",
+    "shortlist_visit_line": "- *{name}* · {visit} · Arrives {when} · Rating {rating}",
     "shortlist_later": "{count} more worker(s) can come only after your preferred time. They are listed at the end.",
     "shortlist_no_photo": "Note: No photo was shared, so these rates are based on your call.",
-    "shortlist_footer": "Tap *Choose worker* to book.",
+    "shortlist_footer": "Tap *Choose worker* to book. The fee is Suvidha's booking fee, paid after you choose. You pay the worker's rate directly to the worker after the job.",
     "list_button": "Choose worker",
     "section_ranked": "Rates",
     "section_visit": "Quote after visit",
@@ -98,7 +98,7 @@
     "reason_quality_best": "Highest rated: {rating}",
     "reason_quality": "Rating: {rating}",
     "reason_but_later": ", but arrives {when}",
-    "booked_customer": "*Booking confirmed*\nWorker: {name}\nArrival: {when}\nRate: {price}\nStart code: *{otp}*\n\nShare the start code only when the worker arrives. To speak to the worker, call the Suvidha number.",
+    "booked_customer": "*Booking confirmed*\nWorker: {name}\nArrival: {when}\nRate: {price} (pay the worker directly after the job)\nBooking fee: ₹{fee} (paid){credit}\nStart code: *{otp}*\n\nShare the start code only when the worker arrives. To speak to the worker, call the Suvidha number.",
     "booked_worker": "*Job confirmed*\nJob: {job}\nDetails: {problem}\nAddress: {address}\nTime: {when}\nContact on site: {contact}{safety}\n\nAsk the customer for the start code before you begin. To speak to the customer, call the Suvidha number.",
     "safety_line": "\nPlease note: {note}",
     "not_chosen_worker": "Thank you for sharing your rate. The customer has booked another worker this time.",
@@ -106,6 +106,14 @@
     "worker_customer_update": "*Update from the customer*\nJob: {job}\n{note}",
     "login_code": "Your Suvidha login code is *{code}*. It is valid for 10 minutes. Do not share this code with anyone.",
     "on_the_way_customer": "*{name} is on the way*\nJob: {job}\nShare your start code when they arrive: *{otp}*",
-    "finish_code_customer": "*Job marked as done*\n{name} has marked your job ({job}) as done.\nFinal price: {price}\n\nIf you are satisfied with the work, share this finish code with them: *{otp}*\nIf not, do not share the code. Reply here and we will help."
+    "finish_code_customer": "*Job marked as done*\n{name} has marked your job ({job}) as done.\nFinal price: {price}\n\nIf you are satisfied with the work, share this finish code with them: *{otp}*\nIf not, do not share the code. Reply here and we will help.",
+    "price_with_fee": "₹{price} + ₹{fee} fee",
+    "visit_with_fee": "Visit charge ₹{price} + ₹{fee} fee",
+    "fee_only": "₹{fee} fee",
+    "visit_price": "Visit charge ₹{price}",
+    "payment_request": "*Pay the booking fee*\nWorker: {name}\nBooking fee: ₹{fee}{credit}\nPay here: {link}\n\nThe link is valid for {minutes} minutes. Your booking is confirmed once the fee is paid, and you will get the start code. You pay the worker's rate ({price}) directly to the worker after the job.",
+    "credit_applied": " (₹{credit} from your credit, ₹{amount} left to pay)",
+    "payment_expired": "*Booking not confirmed*\nThe time to pay the booking fee ran out, so nothing was booked. You can choose a worker again from the list above.",
+    "credit_balance": "\nSuvidha credit: ₹{credit} (never expires, used on your next booking)"
   }
 }

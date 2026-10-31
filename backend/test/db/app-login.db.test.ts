@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { BolnaClient } from "../../src/clients/bolna.ts";
 import type { MapsClient } from "../../src/clients/maps.ts";
+import { fakePayments } from "../../src/clients/payments.ts";
 import type { StorageClient } from "../../src/clients/storage.ts";
 import type { WhatsAppClient } from "../../src/clients/whatsapp.ts";
 import type { Ctx } from "../../src/core/context.ts";
@@ -21,12 +22,12 @@ const whatsapp: WhatsAppClient = {
 };
 const background = backgroundTasks();
 const ctx: Ctx = {
-  sql, whatsapp,
+  sql, whatsapp, payments: fakePayments("https://pay.test"),
   bolna: { call: async () => "exec" } as BolnaClient,
   storage: { upload: async () => true, signedUrl: async () => "" } as StorageClient,
   maps: { geocode: async () => null } as MapsClient,
   customerLine: null, workerLine: null, customerLineMode: "live",
-  limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 6, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120 },
+  limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 6, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120, paymentWindowSec: 300 },
   now: () => new Date(),
   log: () => {},
   background: background.run,
@@ -131,16 +132,24 @@ describe("web app login and customer data", () => {
 
     const job = (await services.customerJob(session, "AJOB"))!;
     expect(job.status).toBe("quotes_in");
-    expect(job.quotes.map((q) => [q.ref, q.price])).toEqual([["AJOBQ0", 350], ["AJOBQ1", 400]]);
+    expect(job.quotes.map((q) => [q.ref, q.price, q.fee])).toEqual([["AJOBQ0", 350, 29], ["AJOBQ1", 400, 29]]);
   });
 
-  it("books one of its own quotes, never someone else's", async () => {
+  it("books one of its own quotes, never someone else's, once the fee is paid", async () => {
     const session = (await services.session(token))!;
     expect(await services.bookForCustomer(session, "AJOB", "BJOBQ0")).toBe(false);
-    expect(await services.bookForCustomer(session, "AJOB", "AJOBQ1")).toBe(true);
+    const chosen = await services.bookForCustomer(session, "AJOB", "AJOBQ1");
+    expect(chosen).toEqual({ payUrl: expect.stringMatching(/^https:\/\/pay\.test\/pay\/[0-9a-f-]{36}$/) });
+
+    const payUrl = (chosen as { payUrl: string }).payUrl;
+
+    const waiting = (await services.customerJob(session, "AJOB"))!;
+    expect(waiting).toMatchObject({ status: "awaiting_payment", payment: { amount: 29, url: payUrl }, booking: null });
+    expect(await services.payBooking(payUrl.split("/").at(-1)!)).toBe("paid");
+    await background.settle();
 
     const job = (await services.customerJob(session, "AJOB"))!;
-    expect(job.status).toBe("booked");
+    expect(job).toMatchObject({ status: "booked", payment: null });
     expect(job.booking).toMatchObject({ stage: "booked", finishCode: null });
     expect(job.booking!.startCode).toMatch(/^\d{4}$/);
   });

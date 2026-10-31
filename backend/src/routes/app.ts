@@ -95,8 +95,8 @@ export function appRouter({ appToken, services }: Deps) {
   router.post("/customer/jobs/:ref/book", signedIn, customer, async (req, res) => {
     const input = Book.safeParse(req.body);
     if (!input.success) return res.status(400).json({ ok: false, error: "bad_request" });
-    const booked = await services.bookForCustomer(session(res), String(req.params.ref), input.data.quoteRef);
-    res.status(booked ? 200 : 409).json(booked ? { ok: true } : { ok: false, error: "not_bookable" });
+    const chosen = await services.bookForCustomer(session(res), String(req.params.ref), input.data.quoteRef);
+    res.status(chosen ? 200 : 409).json(chosen ? { ok: true, payUrl: chosen.payUrl } : { ok: false, error: "not_bookable" });
   });
 
   router.get("/worker/home", signedIn, worker, async (_req, res) => {

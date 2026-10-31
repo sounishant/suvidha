@@ -1,9 +1,9 @@
-import { randomInt } from "node:crypto";
 import { distanceKm } from "../clients/maps.ts";
 import { label, priceLabel, tradeName, whatsappText, whenLabel } from "../messages.ts";
 import type { WorkerQuote } from "./card.ts";
 import type { Ctx } from "./context.ts";
 import { logEvent } from "./events.ts";
+import { bookingFee } from "./fees.ts";
 import { jobById, jobLabel, moveJob, recordSent, whenText, type JobRow } from "./jobs.ts";
 import { toWhatsApp } from "./phone.ts";
 import { rankQuotes, type Measure, type RankedQuote } from "./ranking.ts";
@@ -272,17 +272,23 @@ function shortlist(job: JobRow, ranked: RankedQuote[], byId: Map<string, QuoteRo
   const when = (q: QuoteRow) => (q.earliest_arrival ? whenLabel(lang, q.earliest_arrival, now) : t("none"));
   const labels = (r: RankedQuote) => (r.labels.length ? ` (${r.labels.map((l) => t(`label_${l}`)).join(", ")})` : "");
   const inGroup = (g: RankedQuote["group"]) => ranked.filter((r) => r.group === g);
+  const withFee = (q: QuoteRow) => {
+    const amount = q.price ?? q.visit_charge;
+    const fee = bookingFee(amount ?? 0);
+    return amount === null ? t("fee_only", { fee })
+      : t(q.price === null ? "visit_with_fee" : "price_with_fee", { price: amount, fee });
+  };
 
   const lines = [t("shortlist_intro", { job: jobLabel(job) }), ""];
   for (const r of inGroup("ranked")) {
     const q = byId.get(r.id)!;
-    lines.push(t("shortlist_line", { n: r.rank, name: q.name, price: priceLabel(lang, q.price!), when: when(q), rating: ratingText(lang, q), reason: reasons.get(r.id) ?? "", labels: labels(r) }));
+    lines.push(t("shortlist_line", { n: r.rank, name: q.name, price: withFee(q), when: when(q), rating: ratingText(lang, q), reason: reasons.get(r.id) ?? "", labels: labels(r) }));
   }
   if (inGroup("visit").length) {
     lines.push("", t("shortlist_visit_title"));
     for (const r of inGroup("visit")) {
       const q = byId.get(r.id)!;
-      lines.push(t("shortlist_visit_line", { name: q.name, when: when(q), rating: ratingText(lang, q), visit: q.visit_charge ? t("visit_charge", { price: q.visit_charge }) : "" }));
+      lines.push(t("shortlist_visit_line", { name: q.name, when: when(q), rating: ratingText(lang, q), visit: withFee(q) }));
     }
   }
   if (inGroup("later").length) lines.push("", t("shortlist_later", { count: inGroup("later").length }));
@@ -291,11 +297,10 @@ function shortlist(job: JobRow, ranked: RankedQuote[], byId: Map<string, QuoteRo
 
   const row = (r: RankedQuote) => {
     const q = byId.get(r.id)!;
-    const price = q.price_type === "visit_only" ? (q.visit_charge ? t("visit_charge", { price: q.visit_charge }).replace(/^ · /, "") : "") : priceLabel(lang, q.price!);
     return {
       id: `book:${q.ref}`,
       title: cut(`${r.rank}. ${q.name}`, 24),
-      description: cut([price, t("row_description", { when: when(q), rating: ratingText(lang, q) })].filter(Boolean).join(" · "), 72),
+      description: cut([withFee(q), t("row_description", { when: when(q), rating: ratingText(lang, q) })].filter(Boolean).join(" · "), 72),
     };
   };
   const sections = (
@@ -303,52 +308,6 @@ function shortlist(job: JobRow, ranked: RankedQuote[], byId: Map<string, QuoteRo
   ).map(([g, title]) => ({ title: t(title), rows: inGroup(g).map(row) })).filter((s) => s.rows.length);
 
   return { header: t("shortlist_header", { count: ranked.length }), body: cut(lines.join("\n"), 1024), button: t("list_button"), sections };
-}
-
-const otp = () => String(randomInt(0, 10_000)).padStart(4, "0");
-
-// The customer taps a worker on the shortlist; only a job still showing its quotes can be booked, once.
-export async function bookQuote(ctx: Ctx, phone: string, quoteRef: string) {
-  const booked = await ctx.sql.begin(async (tx) => {
-    const [row] = await tx<{ quote_id: string; job_id: string; worker_id: string; earliest_arrival: Date | null; price: number | null }[]>`
-      select q.id as quote_id, q.job_id, q.worker_id, q.earliest_arrival, q.price
-      from quotes q join jobs j on j.id = q.job_id join customers c on c.id = j.customer_id
-      where q.ref = ${quoteRef} and c.phone = ${phone} and q.rank is not null
-      for update of j`;
-    if (!row || !(await moveJob(tx, row.job_id, "quotes_in", "booked"))) return null;
-    await tx`
-      insert into bookings (job_id, worker_id, quote_id, start_otp, completion_otp, eta_at)
-      values (${row.job_id}, ${row.worker_id}, ${row.quote_id}, ${otp()}, ${otp()}, ${row.earliest_arrival})`;
-    await tx`update jobs set price_inr = ${row.price} where id = ${row.job_id}`;
-    await logEvent(tx, row.job_id, "booking_made", "customer", { worker_id: row.worker_id, quote: quoteRef });
-    return row;
-  });
-  if (!booked) return false;
-
-  const job = await jobById(ctx.sql, booked.job_id);
-  const [b] = await ctx.sql<{ start_otp: string; name: string; phone: string; language: string; price: number | null; earliest_arrival: Date | null }[]>`
-    select b.start_otp, w.name, w.phone, w.language, q.price, q.earliest_arrival
-    from bookings b join workers w on w.id = b.worker_id join quotes q on q.id = b.quote_id where b.job_id = ${job.id}`;
-  const now = ctx.now();
-  const lang = job.language;
-  const price = b!.price === null ? whatsappText(lang, "none") : priceLabel(lang, b!.price);
-  const when = b!.earliest_arrival ? whenLabel(lang, b!.earliest_arrival, now) : whenText(job, now);
-  const id = await ctx.whatsapp.sendText(toWhatsApp(job.phone), whatsappText(lang, "booked_customer", { name: b!.name, when, price, otp: b!.start_otp }));
-  await recordSent(ctx, job, "booking", id);
-
-  const wl = b!.language;
-  await ctx.whatsapp.sendText(toWhatsApp(b!.phone), whatsappText(wl, "booked_worker", {
-    job: jobLabel({ ...job, language: wl }), problem: job.problem ?? "", address: job.address ?? whatsappText(wl, "none"),
-    when: b!.earliest_arrival ? whenLabel(wl, b!.earliest_arrival, now) : whenText({ ...job, language: wl }, now),
-    contact: job.site_contact ?? job.customer_name ?? whatsappText(wl, "none"),
-    safety: job.safety_note ? whatsappText(wl, "safety_line", { note: job.safety_note }) : "",
-  }));
-
-  const others = await ctx.sql<{ phone: string; language: string }[]>`
-    select w.phone, w.language from quotes q join workers w on w.id = q.worker_id
-    where q.job_id = ${job.id} and q.rank is not null and q.id <> ${booked.quote_id} order by q.call_order`;
-  for (const o of others) await ctx.whatsapp.sendText(toWhatsApp(o.phone), whatsappText(o.language, "not_chosen_worker"));
-  return true;
 }
 
 // A photo that arrives after calls started goes straight to every worker already contacted.

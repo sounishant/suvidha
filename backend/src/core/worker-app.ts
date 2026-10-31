@@ -66,7 +66,7 @@ export async function workerHome(ctx: Ctx, session: Session) {
            j.safety_note, j.time_window_text, j.window_end, q.distance_km, q.quoted_at, q.available, q.price_type,
            q.price, q.visit_charge, q.earliest_arrival, b.worker_id as booked_worker
     from quotes q join jobs j on j.id = q.job_id left join bookings b on b.job_id = j.id
-    where q.worker_id = ${session.workerId} and j.status in ('inviting', 'quotes_in', 'booked')
+    where q.worker_id = ${session.workerId} and j.status in ('inviting', 'quotes_in', 'awaiting_payment', 'booked')
       and (b.worker_id is null or b.worker_id <> ${session.workerId})
     order by q.called_at desc limit 20`;
 
