@@ -41,7 +41,7 @@ export function stubServices() {
     callStatus: record("callStatus", undefined),
     whatsappEvent: record("whatsappEvent", undefined),
     startLogin: record("startLogin", { ok: true as const }),
-    verifyLogin: record("verifyLogin", { ok: true as const, token: "tok", role: "customer" as const }),
+    verifyLogin: record("verifyLogin", { ok: true as const, token: "tok", role: "customer" as const, needsName: false }),
     session: async (token: string) => {
       calls.push({ name: "session", input: token });
       return token === "good" ? { id: "s1", phone: "+919876543210", role: "customer" as const, customerId: "c1", workerId: null } : null;
@@ -53,6 +53,8 @@ export function stubServices() {
       return ref === "MINE" ? ({ ref } as never) : null;
     },
     bookForCustomer: record("bookForCustomer", true),
+    customerProfile: record("customerProfile", { phone: "+919876543210", name: "Asha" }),
+    setCustomerName: record("setCustomerName", undefined),
   };
   return { services, calls };
 }

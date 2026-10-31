@@ -76,7 +76,7 @@ describe("web app login and customer data", () => {
     const wrong = code === "000000" ? "111111" : "000000";
     expect(await services.verifyLogin({ phone: ASHA, role: "customer", code: wrong })).toEqual({ ok: false, error: "wrong_code" });
     const reply = await services.verifyLogin({ phone: ASHA, role: "customer", code: code! });
-    expect(reply.ok).toBe(true);
+    expect(reply).toMatchObject({ ok: true, needsName: false });
     token = reply.ok ? reply.token : "";
 
     const session = await services.session(token);
@@ -85,12 +85,27 @@ describe("web app login and customer data", () => {
     expect(await services.verifyLogin({ phone: ASHA, role: "customer", code: code! })).toEqual({ ok: false, error: "wrong_code" });
   });
 
-  it("answers an unknown number the same way but never sends it a code", async () => {
-    const before = sent.length;
+  it("signs up a new customer and asks for a name", async () => {
+    const NEW = "+919833333333";
     expect(await services.startLogin({ phone: "9833333333", role: "customer" })).toEqual({ ok: true });
+    const code = await codeFor(NEW);
+    expect(code).toMatch(/^\d{6}$/);
+    const reply = await services.verifyLogin({ phone: NEW, role: "customer", code: code! });
+    expect(reply).toMatchObject({ ok: true, needsName: true });
+
+    const session = (await services.session(reply.ok ? reply.token : ""))!;
+    expect(await services.customerProfile(session)).toEqual({ phone: NEW, name: null });
+    await services.setCustomerName(session, "Kavita");
+    expect(await services.customerProfile(session)).toEqual({ phone: NEW, name: "Kavita" });
+    expect(await services.customerJobs(session)).toEqual([]);
+  });
+
+  it("never sends a code to a number that is not a worker", async () => {
+    const before = sent.length;
+    expect(await services.startLogin({ phone: "9844444444", role: "worker" })).toEqual({ ok: true });
     await background.settle();
     expect(sent.length).toBe(before);
-    expect(await services.verifyLogin({ phone: "9833333333", role: "customer", code: "123456" })).toEqual({ ok: false, error: "wrong_code" });
+    expect(await services.verifyLogin({ phone: "9844444444", role: "worker", code: "123456" })).toEqual({ ok: false, error: "wrong_code" });
   });
 
   it("stops after three codes in fifteen minutes", async () => {

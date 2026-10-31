@@ -156,6 +156,15 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
   };
 }
 
+export async function customerProfile(ctx: Ctx, session: Session) {
+  const [c] = await ctx.sql<{ name: string | null }[]>`select name from customers where id = ${session.customerId}`;
+  return { phone: session.phone, name: c?.name ?? null };
+}
+
+export async function setCustomerName(ctx: Ctx, session: Session, name: string) {
+  await ctx.sql`update customers set name = ${name} where id = ${session.customerId}`;
+}
+
 // The same booking the WhatsApp list makes; the quote must belong to this customer's job.
 export async function bookForCustomer(ctx: Ctx, session: Session, jobRef: string, quoteRef: string) {
   const [match] = await ctx.sql`

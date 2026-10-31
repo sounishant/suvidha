@@ -18,18 +18,18 @@ const sha256 = (text: string) => createHash("sha256").update(text).digest("hex")
 const codeHash = (phone: string, code: string) => sha256(`${phone}:${code}`);
 const sameHash = (a: string, b: string) => timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
 
-type Account = { id: string; language: string | null };
+type Account = { id: string; language: string | null; name: string | null };
 
 async function accountFor(sql: Sql | TransactionSql, phone: string, role: Role): Promise<Account | null> {
   const rows =
     role === "customer"
-      ? await sql<Account[]>`select id, preferred_language as language from customers where phone = ${phone} and not blocked`
-      : await sql<Account[]>`select id, language from workers where phone = ${phone} and not blocked`;
+      ? await sql<Account[]>`select id, preferred_language as language, name from customers where phone = ${phone} and not blocked`
+      : await sql<Account[]>`select id, language, name from workers where phone = ${phone} and not blocked`;
   return rows[0] ?? null;
 }
 
-// Same reply whether or not the number has an account, and a code row is stored either way,
-// so neither the reply nor the rate limit tells a stranger who our customers are.
+// Customers can sign up here, so any valid number gets a code; workers still join only by calling,
+// and for them the reply and the rate limit stay the same whether or not the number is known.
 export async function startLogin(ctx: Ctx, input: { phone: string; role: Role }): Promise<LoginReply> {
   const phone = toE164(input.phone);
   if (!/^\+91\d{10}$/.test(phone)) return { ok: false, error: "invalid_phone" };
@@ -45,12 +45,12 @@ export async function startLogin(ctx: Ctx, input: { phone: string; role: Role })
     values (${phone}, ${input.role}, ${codeHash(phone, code)}, now() + make_interval(mins => ${CODE_MINUTES}))`;
 
   const account = await accountFor(ctx.sql, phone, input.role);
-  if (!account) {
-    ctx.log(`login code asked for unknown ${input.role} ${maskPhone(phone)}`);
+  if (!account && input.role === "worker") {
+    ctx.log(`login code asked for unknown worker ${maskPhone(phone)}`);
     return { ok: true };
   }
   ctx.background(async () => {
-    await ctx.whatsapp.sendText(toWhatsApp(phone), whatsappText(account.language, "login_code", { code }));
+    await ctx.whatsapp.sendText(toWhatsApp(phone), whatsappText(account?.language, "login_code", { code }));
   });
   return { ok: true };
 }
@@ -58,7 +58,7 @@ export async function startLogin(ctx: Ctx, input: { phone: string; role: Role })
 export async function verifyLogin(
   ctx: Ctx,
   input: { phone: string; role: Role; code: string },
-): Promise<{ ok: true; token: string; role: Role } | { ok: false; error: "wrong_code" }> {
+): Promise<{ ok: true; token: string; role: Role; needsName: boolean } | { ok: false; error: "wrong_code" }> {
   const phone = toE164(input.phone);
   return ctx.sql.begin(async (tx) => {
     const [row] = await tx<{ id: string; code_hash: string; attempts: number }[]>`
@@ -70,6 +70,8 @@ export async function verifyLogin(
       await tx`update login_codes set attempts = attempts + 1 where id = ${row.id}`;
       return { ok: false as const, error: "wrong_code" as const };
     }
+    // A first-time customer becomes one here; the call flow later finds them by phone.
+    if (input.role === "customer") await tx`insert into customers (phone) values (${phone}) on conflict (phone) do nothing`;
     const account = await accountFor(tx, phone, input.role);
     if (!account) return { ok: false as const, error: "wrong_code" as const };
 
@@ -80,7 +82,7 @@ export async function verifyLogin(
       values (${sha256(token)}, ${phone}, ${input.role},
               ${input.role === "customer" ? account.id : null}, ${input.role === "worker" ? account.id : null},
               now() + make_interval(days => ${SESSION_DAYS}))`;
-    return { ok: true as const, token, role: input.role };
+    return { ok: true as const, token, role: input.role, needsName: !account.name };
   });
 }
 

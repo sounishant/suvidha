@@ -1,7 +1,7 @@
 import { endSession, sessionFor, startLogin, verifyLogin, type Role, type Session } from "./core/app-login.ts";
 import { recordCallStatus, type CallStatus } from "./core/calls.ts";
 import type { Ctx, FnReply } from "./core/context.ts";
-import { bookForCustomer, customerJob, customerJobs } from "./core/customer-app.ts";
+import { bookForCustomer, customerJob, customerJobs, customerProfile, setCustomerName } from "./core/customer-app.ts";
 import { lookupCustomer, lookupWorker } from "./core/lookup.ts";
 import { handleWhatsApp } from "./core/whatsapp-events.ts";
 import { registerWorker, type NewWorker } from "./core/workers.ts";
@@ -22,6 +22,8 @@ export type Services = {
   customerJobs(session: Session): ReturnType<typeof customerJobs>;
   customerJob(session: Session, ref: string): ReturnType<typeof customerJob>;
   bookForCustomer(session: Session, jobRef: string, quoteRef: string): Promise<boolean>;
+  customerProfile(session: Session): ReturnType<typeof customerProfile>;
+  setCustomerName(session: Session, name: string): Promise<void>;
 };
 
 export function coreServices(ctx: Ctx): Services {
@@ -38,5 +40,7 @@ export function coreServices(ctx: Ctx): Services {
     customerJobs: (session) => customerJobs(ctx, session),
     customerJob: (session, ref) => customerJob(ctx, session, ref),
     bookForCustomer: (session, jobRef, quoteRef) => bookForCustomer(ctx, session, jobRef, quoteRef),
+    customerProfile: (session) => customerProfile(ctx, session),
+    setCustomerName: (session, name) => setCustomerName(ctx, session, name),
   };
 }

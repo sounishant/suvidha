@@ -11,6 +11,7 @@ const Role = z.enum(["customer", "worker"]);
 const Start = z.object({ phone: Phone, role: Role });
 const Verify = z.object({ phone: Phone, role: Role, code: z.string().trim().max(10) });
 const Book = z.object({ quoteRef: z.string().trim().min(1).max(20) });
+const Profile = z.object({ name: z.string().trim().min(1).max(60) });
 
 const session = (res: express.Response) => res.locals.session as Session;
 
@@ -51,6 +52,17 @@ export function appRouter({ appToken, services }: Deps) {
   router.get("/me", signedIn, (_req, res) => {
     const { phone, role } = session(res);
     res.json({ ok: true, phone, role });
+  });
+
+  router.get("/customer/profile", signedIn, customer, async (_req, res) => {
+    res.json({ ok: true, profile: await services.customerProfile(session(res)) });
+  });
+
+  router.post("/customer/profile", signedIn, customer, async (req, res) => {
+    const input = Profile.safeParse(req.body);
+    if (!input.success) return res.status(400).json({ ok: false, error: "invalid_name" });
+    await services.setCustomerName(session(res), input.data.name);
+    res.json({ ok: true });
   });
 
   router.get("/customer/jobs", signedIn, customer, async (_req, res) => {

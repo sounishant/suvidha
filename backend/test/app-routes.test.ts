@@ -44,6 +44,12 @@ describe("web app routes", () => {
     expect((await call("GET", "/customer/jobs/MINE", signedIn)).status).toBe(200);
   });
 
+  it("save a name between 1 and 60 characters", async () => {
+    expect((await call("POST", "/customer/profile", signedIn, { name: "  " })).status).toBe(400);
+    expect((await call("POST", "/customer/profile", signedIn, { name: "Asha" })).status).toBe(200);
+    expect(await (await call("GET", "/customer/profile", signedIn)).json()).toEqual({ ok: true, profile: { phone: "+919876543210", name: "Asha" } });
+  });
+
   it("book through the shared core function", async () => {
     expect((await call("POST", "/customer/jobs/MINE/book", signedIn, {})).status).toBe(400);
     const res = await call("POST", "/customer/jobs/MINE/book", signedIn, { quoteRef: "Q7K2" });
