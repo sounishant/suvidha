@@ -22,13 +22,17 @@ export async function sessionToken() {
 }
 
 // The real check: asks the backend whether the session is live. Cached for one render pass.
-export const requireCustomer = cache(async () => {
-  const token = await sessionToken();
-  if (!token) redirect("/login");
-  const { status, data } = await backend<{ ok: boolean; phone: string; role: string }>("/me", { token });
-  if (status !== 200 || data.role !== "customer") redirect("/login");
-  return { token, phone: data.phone };
-});
+const requireRole = (role: "customer" | "worker", login: string) =>
+  cache(async () => {
+    const token = await sessionToken();
+    if (!token) redirect(login);
+    const { status, data } = await backend<{ ok: boolean; phone: string; role: string }>("/me", { token });
+    if (status !== 200 || data.role !== role) redirect(login);
+    return { token, phone: data.phone };
+  });
+
+export const requireCustomer = requireRole("customer", "/login");
+export const requireWorker = requireRole("worker", "/login/worker");
 
 export const customerProfile = cache(async () => {
   const { token } = await requireCustomer();
@@ -41,3 +45,4 @@ export async function endSession() {
   if (token) await backend("/auth/logout", { method: "POST", token });
   (await cookies()).delete(SESSION_COOKIE);
 }
+
