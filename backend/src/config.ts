@@ -17,6 +17,8 @@ const Env = z.object({
   QUOTES_WANTED: z.coerce.number().int().positive().default(3),
   CALL_TIMEOUT_SEC: z.coerce.number().int().positive().default(300),
   EXTRACTION_WAIT_SEC: z.coerce.number().int().positive().default(120),
+  // "test": no daily call limit or auto-flagging, and workers calling the customer line book as customers.
+  CUSTOMER_LINE_MODE: z.enum(["live", "test"]).default("live"),
   // Outbound keys arrive with the phone numbers; until then the clients only log.
   BOLNA_API_KEY: z.string().optional(),
   BOLNA_AGENT_ID_CUSTOMER: z.string().optional(),

@@ -54,6 +54,7 @@ const ctx: Ctx = {
   sql, whatsapp, bolna, storage, maps,
   customerLine: { agentId: "agent-customer", number: "+918000000000" },
   workerLine: { agentId: "agent-worker", number: "+918000000000" },
+  customerLineMode: "live",
   limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 6, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120 },
   now: () => clock,
   log: () => {},
@@ -99,6 +100,7 @@ beforeEach(() => {
   sent.length = 0;
   uploads.length = 0;
   ctx.limits.maxWorkerCalls = 6;
+  ctx.customerLineMode = "live";
 });
 
 const bearer = { authorization: `Bearer ${secrets.BOLNA_FUNCTION_TOKEN}`, "content-type": "application/json" };
@@ -257,6 +259,8 @@ describe("a complete intake call", () => {
     expect(customer.open_job).toContain("Sanskar");
     // While testing on one number, the worker reaches the customer line too.
     expect(await lookup("customer", SANSKAR)).toMatchObject({ caller_type: "worker", name: "Sanskar", transfer_number: phone });
+    ctx.customerLineMode = "test";
+    expect(await lookup("customer", SANSKAR)).toMatchObject({ caller_type: "new", transfer_number: "" });
   });
 
   it("treats a worker without a booking who calls the customer line as a customer", async () => {
@@ -406,6 +410,19 @@ describe("caller limits", () => {
     }
     const { executionId: _, ...next } = await lookup("customer", "+919100000012");
     expect(next).toEqual({});
+  });
+
+  it("lets every call through in test mode: no daily limit, no flagging", async () => {
+    ctx.customerLineMode = "test";
+    for (let i = 0; i < 5; i++) expect(await lookup("customer", "+919100000013")).toHaveProperty("caller_ref");
+    for (const id of ["exec-test-1", "exec-test-2"]) {
+      await lookup("customer", "+919100000013", id);
+      await callWebhook({ id, status: "completed", conversation_duration: 20, extracted_data: { General: { "Call Summary": "testing" } } });
+    }
+    expect(await lookup("customer", "+919100000013")).toHaveProperty("caller_ref");
+    expect((await sql`select flagged_at from customers where phone = '+919100000013'`)[0]?.flagged_at ?? null).toBeNull();
+    // The flag set in live mode above is ignored too.
+    expect(await lookup("customer", "+919100000012")).toHaveProperty("caller_ref");
   });
 });
 

@@ -34,6 +34,7 @@ export function buildCtx(config: Config, sql: Sql, log: (line: string) => void):
     maps: config.GOOGLE_MAPS_API_KEY ? googleMaps(config.GOOGLE_MAPS_API_KEY) : offlineMaps(log),
     customerLine,
     workerLine,
+    customerLineMode: config.CUSTOMER_LINE_MODE,
     limits: {
       inviteDelaySec: config.INVITE_DELAY_SEC,
       parallelCalls: config.PARALLEL_CALLS,

@@ -24,6 +24,7 @@ export type Ctx = {
   // Null until the agent and a number to call from exist in Bolna.
   customerLine: Line | null;
   workerLine: Line | null;
+  customerLineMode: "live" | "test";
   limits: Limits;
   now: () => Date;
   log: (line: string) => void;

@@ -27,7 +27,7 @@ const ctx: Ctx = {
   bolna: { call: async () => "exec" } as BolnaClient,
   storage: { upload: async () => true, signedUrl: async () => "" } as StorageClient,
   maps: { geocode: async () => null } as MapsClient,
-  customerLine: null, workerLine: null,
+  customerLine: null, workerLine: null, customerLineMode: "live",
   // Two calls already placed and no room for more, so the job finishes as soon as both answer.
   limits: { inviteDelaySec: 60, parallelCalls: 2, maxWorkerCalls: 2, quotesWanted: 3, callTimeoutSec: 300, extractionWaitSec: 120 },
   now: () => new Date(),

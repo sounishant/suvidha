@@ -41,8 +41,9 @@ async function workerBooking(ctx: Ctx, worker: Worker) {
 
 export async function lookupCustomer(ctx: Ctx, caller: Caller) {
   const { sql } = ctx;
+  const live = ctx.customerLineMode === "live";
   // While testing on one number, a worker with a booked job reaches it here; anyone else is a customer, workers included.
-  const worker = await workerByPhone(ctx, caller.phone);
+  const worker = live ? await workerByPhone(ctx, caller.phone) : undefined;
   const booking = worker && !worker.blocked ? await workerBooking(ctx, worker) : null;
   if (worker && booking?.transfer) {
     return {
@@ -55,13 +56,15 @@ export async function lookupCustomer(ctx: Ctx, caller: Caller) {
     select c.id, c.name, c.last_address, c.preferred_language, c.blocked, c.flagged_at,
            exists (select 1 from jobs j where j.customer_id = c.id and j.status in ('booked', 'done')) as repeat
     from customers c where c.phone = ${caller.phone}`;
-  if (customer?.blocked || customer?.flagged_at) return REJECT;
+  if (customer?.blocked || (live && customer?.flagged_at)) return REJECT;
 
-  const [today] = await sql<{ calls: number }[]>`
-    select count(*)::int as calls from caller_refs
-    where line = 'customer' and phone = ${caller.phone} and created_at >= ${istDayStart(ctx.now())}
-      and execution_id is distinct from ${caller.executionId}`;
-  if (today!.calls >= MAX_CALLS_PER_DAY) return REJECT;
+  if (live) {
+    const [today] = await sql<{ calls: number }[]>`
+      select count(*)::int as calls from caller_refs
+      where line = 'customer' and phone = ${caller.phone} and created_at >= ${istDayStart(ctx.now())}
+        and execution_id is distinct from ${caller.executionId}`;
+    if (today!.calls >= MAX_CALLS_PER_DAY) return REJECT;
+  }
 
   const callerRef = await issueCallerRef(ctx, "customer", caller);
   let openJob = "";
