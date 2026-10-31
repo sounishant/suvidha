@@ -18,7 +18,7 @@ describe("migrate + seed", () => {
     await seed(sql, phones);
 
     const [counts] = await sql`
-      select (select count(*)::int from workers)      as workers,
+      select (select count(*)::int from workers where not starts_with(phone, '+9100')) as workers,
              (select count(*)::int from worker_stats) as stats`;
     expect(counts).toEqual({ workers: 3, stats: seedWorkers(phones).flatMap((w) => w.skills).length * 4 });
   });

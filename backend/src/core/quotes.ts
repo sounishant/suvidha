@@ -6,13 +6,14 @@ import type { Ctx } from "./context.ts";
 import { logEvent } from "./events.ts";
 import { bookingFee, NO_SHOW_CALL_LAST_DAYS } from "./fees.ts";
 import { jobById, jobLabel, moveJob, photoLink, recordSent, whenText, type JobRow } from "./jobs.ts";
-import { toWhatsApp } from "./phone.ts";
+import { isSandbox, SANDBOX_PREFIX, toWhatsApp } from "./phone.ts";
 import { rankQuotes, type Measure, type RankedQuote } from "./ranking.ts";
 import { withFreshRef } from "./refs.ts";
 
 type Candidate = { id: string; name: string; phone: string; language: string; distanceKm: number | null; skilled: boolean; noShow: boolean };
 
 // Right skill first, then nearest; workers without a location, or who skipped a booking lately, go last.
+// Website demo jobs reach only demo workers, and real jobs never do.
 async function candidates(ctx: Ctx, job: JobRow): Promise<Candidate[]> {
   const noShowSince = new Date(ctx.now().getTime() - NO_SHOW_CALL_LAST_DAYS * 86_400_000);
   const rows = await ctx.sql<{ id: string; name: string; phone: string; language: string; lat: number | null; lng: number | null; skilled: boolean; noShow: boolean }[]>`
@@ -20,6 +21,7 @@ async function candidates(ctx: Ctx, job: JobRow): Promise<Candidate[]> {
            coalesce(w.last_no_show_at > ${noShowSince}, false) as "noShow"
     from workers w
     where w.verified and not w.blocked and ${job.trade} = any(w.trades)
+      and starts_with(w.phone, ${SANDBOX_PREFIX}) = ${isSandbox(job.phone)}
       and not exists (select 1 from quotes q where q.job_id = ${job.id} and q.worker_id = w.id)`;
   const here = job.lat !== null && job.lng !== null ? { lat: job.lat, lng: job.lng } : null;
   return rows

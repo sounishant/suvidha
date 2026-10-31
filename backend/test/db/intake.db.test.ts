@@ -3,11 +3,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../../src/app.ts";
 import type { BolnaClient, CallRequest } from "../../src/clients/bolna.ts";
 import type { MapsClient } from "../../src/clients/maps.ts";
+import { sandboxBolna, sandboxWhatsApp } from "../../src/clients/sandbox.ts";
 import type { StorageClient } from "../../src/clients/storage.ts";
 import type { ListMessage, WhatsAppClient } from "../../src/clients/whatsapp.ts";
 import type { Ctx } from "../../src/core/context.ts";
 import { expirePayments } from "../../src/core/bookings.ts";
 import { suvidhaCancels } from "../../src/core/cancellations.ts";
+import { answerSandboxCalls, demoFeed, demoReply, startDemo } from "../../src/core/demo.ts";
 import { expireQuoteCalls, startDueInvites } from "../../src/core/quotes.ts";
 import { migrate } from "../../src/db/migrate.ts";
 import { seed } from "../../src/db/seed.ts";
@@ -50,11 +52,12 @@ const bolna: BolnaClient = {
     calls.push({ ...req, executionId });
     return executionId;
   },
+  webSession: async () => ({ run_id: `web-${calls.length}-${Date.now()}` }),
 };
 
 const background = backgroundTasks();
 const ctx: Ctx = {
-  sql, whatsapp, bolna, storage, maps, payments: fakePayments("https://pay.test", () => {}),
+  sql, whatsapp: sandboxWhatsApp(whatsapp, sql), bolna: sandboxBolna(bolna), storage, maps, payments: fakePayments("https://pay.test", () => {}),
   customerLine: { agentId: "agent-customer", number: "+918000000000" },
   workerLine: { agentId: "agent-worker", number: "+918000000000" },
   customerLineMode: "live",
@@ -609,5 +612,36 @@ describe("worker line", () => {
     const [w] = await sql`select trades, verified, skills from workers where phone = '+919100000020'`;
     expect(w).toMatchObject({ trades: ["electrician", "carpenter"], verified: false });
     expect(w!.skills).toEqual(expect.arrayContaining(["fan", "door_repair"]));
+  });
+});
+
+describe("the website demo", () => {
+  it("runs a browser call's job on demo workers only, with its WhatsApp shown on the page", async () => {
+    const started = await startDemo(ctx);
+    if (!started.ok) throw new Error(`demo did not start: ${started.reason}`);
+    const runId = (started.session as { run_id: string }).run_id;
+    await callWebhook({ id: runId, status: "completed", conversation_duration: 90, extracted_data: { "Job Card": card() } });
+    const callsBefore = calls.length;
+
+    let feed = await demoFeed(ctx, started.phone, 0);
+    expect(feed.job).toMatchObject({ trade: "carpenter", status: "confirmed" });
+    expect(JSON.stringify(feed.messages[0]!.body)).toContain("Suvidha request");
+    await demoReply(ctx, started.phone, { text: "Gate number 2 se aana" });
+
+    clock = new Date(clock.getTime() + 61_000);
+    await startDueInvites(ctx);
+    for (let round = 0; round < 3; round++) {
+      clock = new Date(clock.getTime() + 60_000);
+      await answerSandboxCalls(ctx);
+      await background.settle();
+    }
+
+    feed = await demoFeed(ctx, started.phone, 0);
+    expect(feed.quotes.map((q) => q.status)).toEqual(["answered", "answered", "answered"]);
+    expect(feed.messages.map((m) => m.kind)).toEqual(expect.arrayContaining(["sent", "list"]));
+    const quoted = await sql`select w.phone from quotes q join workers w on w.id = q.worker_id join jobs j on j.id = q.job_id where j.ref = ${feed.job!.ref}`;
+    expect(quoted.every((q) => q.phone.startsWith("+9100"))).toBe(true);
+    expect(calls.slice(callsBefore).some((c) => c.to.startsWith("+9100"))).toBe(false);
+    expect(sent.some((s) => s.to.startsWith("9100"))).toBe(false);
   });
 });

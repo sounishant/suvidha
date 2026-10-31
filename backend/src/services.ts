@@ -3,6 +3,7 @@ import { endSession, sessionFor, startLogin, verifyLogin, type Role, type Sessio
 import { payBooking, paymentView, type PaymentView } from "./core/bookings.ts";
 import { recordCallStatus, type CallStatus } from "./core/calls.ts";
 import type { Ctx, FnReply } from "./core/context.ts";
+import { demoFeed, demoReply, startDemo, type DemoReply, type DemoStart } from "./core/demo.ts";
 import { bookForCustomer, cancelForCustomer, customerJob, customerJobs, customerProfile, messageForJob, photoForJob, setCustomerName } from "./core/customer-app.ts";
 import { lookupCustomer, lookupWorker } from "./core/lookup.ts";
 import { handleWhatsApp } from "./core/whatsapp-events.ts";
@@ -37,6 +38,9 @@ export type Services = {
   bookingStep(session: Session, jobRef: string, step: BookingStep): Promise<StepReply>;
   paymentView(paymentId: string): Promise<PaymentView | null>;
   payBooking(paymentId: string): Promise<"paid" | "expired">;
+  demoStart(): Promise<DemoStart>;
+  demoFeed(phone: string, after: number): ReturnType<typeof demoFeed>;
+  demoReply(phone: string, reply: DemoReply): Promise<void>;
 };
 
 export type BookingStep =
@@ -75,5 +79,8 @@ export function coreServices(ctx: Ctx): Services {
       : finishJob(ctx, session, jobRef, step.code),
     paymentView: (id) => paymentView(ctx, id),
     payBooking: (id) => payBooking(ctx, id),
+    demoStart: () => startDemo(ctx),
+    demoFeed: (phone, after) => demoFeed(ctx, phone, after),
+    demoReply: (phone, reply) => demoReply(ctx, phone, reply),
   };
 }
