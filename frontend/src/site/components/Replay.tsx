@@ -120,7 +120,11 @@ export function Replay() {
           {customer.call ? (
             <CallScreen name={customer.call.caller} status={`Call · ${clock(progress * customer.call.seconds)}`} lines={customer.lines} />
           ) : (
-            <Chat bubbles={customer.bubbles} empty={index < 0 ? "Press play to watch a real job" : undefined} />
+            <Chat
+              bubbles={customer.bubbles}
+              empty={index < 0 ? "Press play to watch a real job" : undefined}
+              note={worker.call ? `Suvidha is calling plumbers near you · ${clock(progress * worker.call.seconds)}` : undefined}
+            />
           )}
         </Phone>
 
@@ -145,6 +149,12 @@ export function Replay() {
                 <span>{s.text}</span>
               </li>
             ))}
+            {(customer.call || worker.call) && (
+              <li className="flex gap-3 font-semibold">
+                <span className="w-10 shrink-0 tabular-nums opacity-60">{clock(now)}</span>
+                <span className="animate-pulse">{customer.call ? "On the call: customer’s phone" : "On the call: Kalpana’s phone"}</span>
+              </li>
+            )}
           </ol>
         </div>
 
