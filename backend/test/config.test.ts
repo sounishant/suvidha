@@ -6,6 +6,7 @@ const secrets = {
   BOLNA_WEBHOOK_TOKEN: "w".repeat(32),
   WHATSAPP_APP_SECRET: "app-secret",
   WHATSAPP_VERIFY_TOKEN: "verify-me",
+  APP_API_TOKEN: "a".repeat(32),
 };
 
 describe("loadConfig", () => {

@@ -8,6 +8,7 @@ export const secrets = {
   BOLNA_WEBHOOK_TOKEN: "test-webhook-token-0123456789",
   WHATSAPP_APP_SECRET: "test-app-secret",
   WHATSAPP_VERIFY_TOKEN: "test-verify-token",
+  APP_API_TOKEN: "test-app-token-0123456789",
 };
 
 // Same dedup rule as the webhook_log unique index.
@@ -39,6 +40,19 @@ export function stubServices() {
     registerWorker: record("registerWorker", { ok: true as const }),
     callStatus: record("callStatus", undefined),
     whatsappEvent: record("whatsappEvent", undefined),
+    startLogin: record("startLogin", { ok: true as const }),
+    verifyLogin: record("verifyLogin", { ok: true as const, token: "tok", role: "customer" as const }),
+    session: async (token: string) => {
+      calls.push({ name: "session", input: token });
+      return token === "good" ? { id: "s1", phone: "+919876543210", role: "customer" as const, customerId: "c1", workerId: null } : null;
+    },
+    endSession: record("endSession", undefined),
+    customerJobs: record("customerJobs", []),
+    customerJob: async (_s: unknown, ref: string) => {
+      calls.push({ name: "customerJob", input: ref });
+      return ref === "MINE" ? ({ ref } as never) : null;
+    },
+    bookForCustomer: record("bookForCustomer", true),
   };
   return { services, calls };
 }

@@ -1,6 +1,7 @@
 import express from "express";
 import type { Config } from "./config.ts";
 import type { SaveWebhook } from "./http/webhook-log.ts";
+import { appRouter } from "./routes/app.ts";
 import { bolnaRouter } from "./routes/bolna.ts";
 import { whatsappRouter } from "./routes/whatsapp.ts";
 import type { Services } from "./services.ts";
@@ -8,7 +9,7 @@ import type { Services } from "./services.ts";
 export type AppDeps = {
   pingDb: () => Promise<unknown>;
   version: string;
-  secrets: Pick<Config, "BOLNA_FUNCTION_TOKEN" | "BOLNA_WEBHOOK_TOKEN" | "WHATSAPP_APP_SECRET" | "WHATSAPP_VERIFY_TOKEN">;
+  secrets: Pick<Config, "BOLNA_FUNCTION_TOKEN" | "BOLNA_WEBHOOK_TOKEN" | "WHATSAPP_APP_SECRET" | "WHATSAPP_VERIFY_TOKEN" | "APP_API_TOKEN">;
   saveWebhook: SaveWebhook;
   services: Services;
   background: (task: () => Promise<void>) => void;
@@ -47,6 +48,8 @@ export function createApp(deps: AppDeps) {
       background: deps.background,
     }),
   );
+
+  app.use("/app", appRouter({ appToken: deps.secrets.APP_API_TOKEN, services: deps.services }));
 
   return app;
 }

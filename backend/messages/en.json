@@ -104,6 +104,7 @@
     "safety_line": "\nNote: {note}",
     "not_chosen_worker": "Thanks for your quote. The customer chose another worker this time.",
     "worker_job_card": "*New job: {job}*\n{problem}\nArea: {locality}{distance}\nBy when: {when}\nMaterial: {material}{safety}\n\nSuvidha is calling you now; tell us your rate on the call.",
-    "worker_customer_update": "Customer update ({job}): {note}"
+    "worker_customer_update": "Customer update ({job}): {note}",
+    "login_code": "Your suvidha login code is *{code}*. It works for 10 minutes. Never share it with anyone, not even a worker."
   }
 }

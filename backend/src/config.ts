@@ -8,6 +8,8 @@ const Env = z.object({
   BOLNA_WEBHOOK_TOKEN: z.string().min(16),
   WHATSAPP_APP_SECRET: z.string().min(1),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
+  // Shared with the Next.js server, the only caller of /app.
+  APP_API_TOKEN: z.string().min(16),
   TICK_SEC: z.coerce.number().positive().default(3),
   INVITE_DELAY_SEC: z.coerce.number().int().nonnegative().default(60),
   PARALLEL_CALLS: z.coerce.number().int().positive().default(2),

@@ -104,6 +104,7 @@
     "safety_line": "\nDhyan dein: {note}",
     "not_chosen_worker": "Rate dene ke liye shukriya. Is baar customer ne kisi aur worker ko chuna.",
     "worker_job_card": "*Naya kaam: {job}*\n{problem}\nJagah: {locality}{distance}\nKab tak: {when}\nSaaman: {material}{safety}\n\nSuvidha se call aa raha hai, usi par apna rate bataiye.",
-    "worker_customer_update": "Customer ka update ({job}): {note}"
+    "worker_customer_update": "Customer ka update ({job}): {note}",
+    "login_code": "Aapka suvidha login code *{code}* hai. Ye 10 minute chalega. Ye code kisi ko na batayein, kaarigar ko bhi nahi."
   }
 }
