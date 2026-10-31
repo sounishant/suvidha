@@ -105,6 +105,8 @@
     "not_chosen_worker": "Rate dene ke liye shukriya. Is baar customer ne kisi aur worker ko chuna.",
     "worker_job_card": "*Naya kaam: {job}*\n{problem}\nJagah: {locality}{distance}\nKab tak: {when}\nSaaman: {material}{safety}\n\nSuvidha se call aa raha hai, usi par apna rate bataiye.",
     "worker_customer_update": "Customer ka update ({job}): {note}",
-    "login_code": "Aapka suvidha login code *{code}* hai. Ye 10 minute chalega. Ye code kisi ko na batayein, kaarigar ko bhi nahi."
+    "login_code": "Aapka suvidha login code *{code}* hai. Ye 10 minute chalega. Ye code kisi ko na batayein, kaarigar ko bhi nahi.",
+    "on_the_way_customer": "{name} aapke kaam ({job}) ke liye nikal chuke hain. Pahunchne pe unhe start code bataiye: *{otp}*.",
+    "finish_code_customer": "{name} keh rahe hain ki aapka kaam ({job}) ho gaya. Final daam: {price}. Kaam theek laga ho to unhe ye finish code bataiye: *{otp}*. Theek na laga ho to code mat dijiye aur yahan reply kijiye."
   }
 }

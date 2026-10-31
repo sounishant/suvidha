@@ -2,7 +2,7 @@ import express, { Router, type RequestHandler } from "express";
 import { z } from "zod";
 import type { Session } from "../core/app-login.ts";
 import { requireHeader } from "../http/auth.ts";
-import type { Services } from "../services.ts";
+import type { BookingStep, Services } from "../services.ts";
 
 type Deps = { appToken: string; services: Services };
 
@@ -12,6 +12,22 @@ const Start = z.object({ phone: Phone, role: Role });
 const Verify = z.object({ phone: Phone, role: Role, code: z.string().trim().max(10) });
 const Book = z.object({ quoteRef: z.string().trim().min(1).max(20) });
 const Profile = z.object({ name: z.string().trim().min(1).max(60) });
+const Rupees = z.number().int().min(0).max(100_000);
+const Quote = z
+  .object({
+    available: z.boolean(),
+    declineReason: z.enum(["busy", "too_far", "not_my_skill", "other"]).nullable().default(null),
+    priceType: z.enum(["fixed", "range", "visit_only"]).nullable().default(null),
+    priceMin: Rupees.nullable().default(null),
+    priceMax: Rupees.nullable().default(null),
+    visitCharge: Rupees.nullable().default(null),
+    materialIncluded: z.enum(["yes", "no", "partly"]).nullable().default(null),
+    arrivalInMinutes: z.number().int().min(0).max(7 * 24 * 60).nullable().default(null),
+    note: z.string().trim().max(200).nullable().default(null),
+  })
+  .refine((q) => !q.available || (q.priceType !== null && (q.priceType === "visit_only" || q.priceMin !== null) && q.arrivalInMinutes !== null));
+const Code = z.object({ code: z.string().regex(/^\d{4}$/) });
+const Done = z.object({ finalPrice: Rupees.nullable().default(null) });
 
 const session = (res: express.Response) => res.locals.session as Session;
 
@@ -29,6 +45,8 @@ export function appRouter({ appToken, services }: Deps) {
   };
   const customer: RequestHandler = (_req, res, next) =>
     session(res).role === "customer" ? next() : res.status(403).json({ ok: false, error: "not_a_customer" });
+  const worker: RequestHandler = (_req, res, next) =>
+    session(res).role === "worker" ? next() : res.status(403).json({ ok: false, error: "not_a_worker" });
 
   router.post("/auth/start", async (req, res) => {
     const input = Start.safeParse(req.body);
@@ -81,6 +99,36 @@ export function appRouter({ appToken, services }: Deps) {
     const booked = await services.bookForCustomer(session(res), String(req.params.ref), input.data.quoteRef);
     res.status(booked ? 200 : 409).json(booked ? { ok: true } : { ok: false, error: "not_bookable" });
   });
+
+  router.get("/worker/home", signedIn, worker, async (_req, res) => {
+    res.json({ ok: true, ...(await services.workerHome(session(res))) });
+  });
+
+  router.post("/worker/online", signedIn, worker, async (req, res) => {
+    const input = z.object({ online: z.boolean() }).safeParse(req.body);
+    if (!input.success) return res.status(400).json({ ok: false, error: "bad_request" });
+    await services.setOnline(session(res), input.data.online);
+    res.json({ ok: true });
+  });
+
+  router.post("/worker/quotes/:ref", signedIn, worker, async (req, res) => {
+    const input = Quote.safeParse(req.body);
+    if (!input.success) return res.status(400).json({ ok: false, error: "invalid_quote" });
+    const saved = await services.quoteFromApp(session(res), String(req.params.ref), input.data);
+    res.status(saved ? 200 : 409).json(saved ? { ok: true } : { ok: false, error: "not_open" });
+  });
+
+  const step = (kind: "trip" | "start" | "done" | "finish"): RequestHandler => async (req, res) => {
+    const body = kind === "start" || kind === "finish" ? Code.safeParse(req.body) : kind === "done" ? Done.safeParse(req.body) : { success: true as const, data: {} };
+    if (!body.success) return res.status(400).json({ ok: false, error: kind === "done" ? "bad_request" : "wrong_code" });
+    const reply = await services.bookingStep(session(res), String(req.params.ref), { kind, ...body.data } as BookingStep);
+    const status = reply.ok ? 200 : reply.error === "not_found" ? 404 : reply.error === "wrong_code" ? 400 : reply.error === "code_locked" ? 423 : 409;
+    res.status(status).json(reply);
+  };
+  router.post("/worker/jobs/:ref/trip", signedIn, worker, step("trip"));
+  router.post("/worker/jobs/:ref/start", signedIn, worker, step("start"));
+  router.post("/worker/jobs/:ref/done", signedIn, worker, step("done"));
+  router.post("/worker/jobs/:ref/finish", signedIn, worker, step("finish"));
 
   return router;
 }

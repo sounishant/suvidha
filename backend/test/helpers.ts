@@ -44,6 +44,7 @@ export function stubServices() {
     verifyLogin: record("verifyLogin", { ok: true as const, token: "tok", role: "customer" as const, needsName: false }),
     session: async (token: string) => {
       calls.push({ name: "session", input: token });
+      if (token === "worker") return { id: "s2", phone: "+919000000001", role: "worker" as const, customerId: null, workerId: "w1" };
       return token === "good" ? { id: "s1", phone: "+919876543210", role: "customer" as const, customerId: "c1", workerId: null } : null;
     },
     endSession: record("endSession", undefined),
@@ -55,6 +56,13 @@ export function stubServices() {
     bookForCustomer: record("bookForCustomer", true),
     customerProfile: record("customerProfile", { phone: "+919876543210", name: "Asha" }),
     setCustomerName: record("setCustomerName", undefined),
+    workerHome: record("workerHome", { profile: { name: "Nishant", trades: ["electrician"], verified: true, rating: null, online: true }, invites: [], active: [], earnings: { jobs: 0, total: 0, monthJobs: 0, monthTotal: 0 }, recent: [] }),
+    setOnline: record("setOnline", undefined),
+    quoteFromApp: record("quoteFromApp", true),
+    bookingStep: async (_s: unknown, _ref: string, step: unknown) => {
+      calls.push({ name: "bookingStep", input: step });
+      return { ok: true as const };
+    },
   };
   return { services, calls };
 }

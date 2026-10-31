@@ -4,6 +4,7 @@ import type { Ctx, FnReply } from "./core/context.ts";
 import { bookForCustomer, customerJob, customerJobs, customerProfile, setCustomerName } from "./core/customer-app.ts";
 import { lookupCustomer, lookupWorker } from "./core/lookup.ts";
 import { handleWhatsApp } from "./core/whatsapp-events.ts";
+import { finishJob, markDone, quoteFromApp, setOnline, startTrip, startWork, workerHome, type AppQuote, type StepReply } from "./core/worker-app.ts";
 import { registerWorker, type NewWorker } from "./core/workers.ts";
 
 type Caller = { phone: string; executionId: string | null };
@@ -24,7 +25,17 @@ export type Services = {
   bookForCustomer(session: Session, jobRef: string, quoteRef: string): Promise<boolean>;
   customerProfile(session: Session): ReturnType<typeof customerProfile>;
   setCustomerName(session: Session, name: string): Promise<void>;
+  workerHome(session: Session): ReturnType<typeof workerHome>;
+  setOnline(session: Session, online: boolean): Promise<void>;
+  quoteFromApp(session: Session, quoteRef: string, quote: AppQuote): Promise<boolean>;
+  bookingStep(session: Session, jobRef: string, step: BookingStep): Promise<StepReply>;
 };
+
+export type BookingStep =
+  | { kind: "trip" }
+  | { kind: "start"; code: string }
+  | { kind: "done"; finalPrice: number | null }
+  | { kind: "finish"; code: string };
 
 export function coreServices(ctx: Ctx): Services {
   return {
@@ -42,5 +53,13 @@ export function coreServices(ctx: Ctx): Services {
     bookForCustomer: (session, jobRef, quoteRef) => bookForCustomer(ctx, session, jobRef, quoteRef),
     customerProfile: (session) => customerProfile(ctx, session),
     setCustomerName: (session, name) => setCustomerName(ctx, session, name),
+    workerHome: (session) => workerHome(ctx, session),
+    setOnline: (session, online) => setOnline(ctx, session, online),
+    quoteFromApp: (session, quoteRef, quote) => quoteFromApp(ctx, session, quoteRef, quote),
+    bookingStep: (session, jobRef, step) =>
+      step.kind === "trip" ? startTrip(ctx, session, jobRef)
+      : step.kind === "start" ? startWork(ctx, session, jobRef, step.code)
+      : step.kind === "done" ? markDone(ctx, session, jobRef, step.finalPrice)
+      : finishJob(ctx, session, jobRef, step.code),
   };
 }

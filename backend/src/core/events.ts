@@ -3,7 +3,7 @@ import type { Sql, TransactionSql } from "postgres";
 export type EventType =
   | "call_ended" | "extraction_done" | "followup_sent" | "followup_answered" | "status_changed"
   | "worker_invited" | "quote_received" | "message_sent" | "booking_made" | "safety_note_recorded"
-  | "priority_question_asked" | "card_updated";
+  | "priority_question_asked" | "card_updated" | "trip_started" | "job_started" | "job_done" | "job_closed";
 
 export async function logEvent(
   sql: Sql | TransactionSql,

@@ -105,6 +105,8 @@
     "not_chosen_worker": "Thanks for your quote. The customer chose another worker this time.",
     "worker_job_card": "*New job: {job}*\n{problem}\nArea: {locality}{distance}\nBy when: {when}\nMaterial: {material}{safety}\n\nSuvidha is calling you now; tell us your rate on the call.",
     "worker_customer_update": "Customer update ({job}): {note}",
-    "login_code": "Your suvidha login code is *{code}*. It works for 10 minutes. Never share it with anyone, not even a worker."
+    "login_code": "Your suvidha login code is *{code}*. It works for 10 minutes. Never share it with anyone, not even a worker.",
+    "on_the_way_customer": "{name} is on the way for your job ({job}). When he arrives, tell him your start code: *{otp}*.",
+    "finish_code_customer": "{name} says your job ({job}) is done. Final price: {price}. If you are happy with the work, tell him this finish code: *{otp}*. If not, do not share it and reply here."
   }
 }

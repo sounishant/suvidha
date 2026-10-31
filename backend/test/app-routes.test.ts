@@ -9,6 +9,7 @@ afterEach(() => app.close());
 
 const appToken = { "x-app-token": secrets.APP_API_TOKEN };
 const signedIn = { ...appToken, authorization: "Bearer good" };
+const asWorker = { ...appToken, authorization: "Bearer worker" };
 
 function call(method: string, path: string, headers: Record<string, string>, body?: object) {
   return fetch(`${app.url}/app${path}`, {
@@ -48,6 +49,28 @@ describe("web app routes", () => {
     expect((await call("POST", "/customer/profile", signedIn, { name: "  " })).status).toBe(400);
     expect((await call("POST", "/customer/profile", signedIn, { name: "Asha" })).status).toBe(200);
     expect(await (await call("GET", "/customer/profile", signedIn)).json()).toEqual({ ok: true, profile: { phone: "+919876543210", name: "Asha" } });
+  });
+
+  it("keep customers and workers to their own routes", async () => {
+    expect((await call("GET", "/worker/home", signedIn)).status).toBe(403);
+    expect((await call("GET", "/customer/jobs", asWorker)).status).toBe(403);
+    expect((await call("GET", "/worker/home", asWorker)).status).toBe(200);
+  });
+
+  it("check a worker quote before saving it", async () => {
+    const quote = { available: true, priceType: "fixed", priceMin: 350, arrivalInMinutes: 60 };
+    expect((await call("POST", "/worker/quotes/Q1", asWorker, { ...quote, priceMin: null })).status).toBe(400);
+    expect((await call("POST", "/worker/quotes/Q1", asWorker, { ...quote, arrivalInMinutes: null })).status).toBe(400);
+    expect((await call("POST", "/worker/quotes/Q1", asWorker, { available: false, declineReason: "busy" })).status).toBe(200);
+    expect((await call("POST", "/worker/quotes/Q1", asWorker, quote)).status).toBe(200);
+  });
+
+  it("only take a 4-digit code for the start and finish steps", async () => {
+    expect((await call("POST", "/worker/jobs/J1/start", asWorker, { code: "12" })).status).toBe(400);
+    expect((await call("POST", "/worker/jobs/J1/start", asWorker, { code: "1234" })).status).toBe(200);
+    expect(app.calls.at(-1)).toEqual({ name: "bookingStep", input: { kind: "start", code: "1234" } });
+    await call("POST", "/worker/jobs/J1/done", asWorker, { finalPrice: 400 });
+    expect(app.calls.at(-1)).toEqual({ name: "bookingStep", input: { kind: "done", finalPrice: 400 } });
   });
 
   it("book through the shared core function", async () => {
