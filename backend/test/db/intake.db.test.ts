@@ -181,7 +181,7 @@ describe("a complete intake call", () => {
     expect(sent[0]!.text).toContain("Darwaze ki repair");
     expect(sent[0]!.text).toContain("Worker laayega");
     expect(sent[0]!.text).toContain("Jaldi aana");
-    expect(sent[0]!.text).toContain("Kuch galat ho toh reply karke batayiye");
+    expect(sent[0]!.text).toContain("Koi jaankari galat ho to isi message par reply kijiye");
   });
 
   it("builds the card once even if Bolna sends the extraction again", async () => {
@@ -228,7 +228,7 @@ describe("a complete intake call", () => {
       ["Chetan", "answered", 2, "ranked"],
       ["Dinesh", "answered", 3, "visit"],
     ]);
-    expect(quotes[0]!.rank_reason).toBe("Sabse jaldi aa sakte hain: aaj 5:30 pm");
+    expect(quotes[0]!.rank_reason).toBe("Sabse jaldi pahunchenge: aaj 5:30 pm");
   });
 
   it("sends the customer a tap-to-book shortlist", async () => {
@@ -290,7 +290,7 @@ describe("the shortlist message", () => {
     expect(shortlist.text).toContain("₹350");
     expect(shortlist.text).toContain("₹300–400");
     expect(shortlist.text).toContain("saaman alag se");
-    expect(shortlist.text).toContain("visit charge ₹100");
+    expect(shortlist.text).toContain("Visit charge ₹100");
     expect(shortlist.text).toContain("Photo nahi mili");
   });
 });
@@ -301,7 +301,7 @@ describe("a call that left fields empty", () => {
   it("stays a draft and asks one question at a time on WhatsApp until the card is complete", async () => {
     const j = await intakeCall(phone, { time_window: "", time_window_latest: "", priority_first: "" });
     expect(j).toMatchObject({ status: "draft", missing_fields: ["time_window", "priority"], urgency: "flexible" });
-    expect(sent.map((s) => s.text.slice(0, 16))).toEqual(["*Suvidha: aapka ", "Kab tak ho jaana"]);
+    expect(sent.map((s) => s.text.slice(0, 16))).toEqual(["*Aapki Suvidha r", "Kaam kab tak ho "]);
     expect((await job(j.id)).pending_question).toBe("time_window");
 
     await text("919100000002", "kal subah tak");
@@ -312,7 +312,7 @@ describe("a call that left fields empty", () => {
 
     await text("919100000002", "jo sabse jaldi aa sake");
     expect(await job(j.id)).toMatchObject({ status: "confirmed", priorities: ["speed"], missing_fields: [], pending_question: null });
-    expect(sent.at(-1)!.text).toContain("Shukriya");
+    expect(sent.at(-1)!.text).toContain("Dhanyavaad");
   });
 });
 
@@ -381,7 +381,7 @@ describe("a real Bolna extraction", () => {
     });
     const [j] = await sql`select * from jobs where execution_id = ${who.executionId}`;
     expect(j).toMatchObject({ status: "draft", trade: "plumber", material: "worker_brings", missing_fields: ["job_type", "address", "priority"] });
-    expect(sent.filter((s) => s.to === "919100000008").map((s) => s.text.slice(0, 16))).toEqual(["*Suvidha: aapka ", "Kya kaam karwana"]);
+    expect(sent.filter((s) => s.to === "919100000008").map((s) => s.text.slice(0, 16))).toEqual(["*Aapki Suvidha r", "Kya kaam karwana"]);
   });
 });
 
