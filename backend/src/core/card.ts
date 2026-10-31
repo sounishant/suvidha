@@ -47,9 +47,9 @@ export function toMaterial(text: string) {
 
 export function toPriority(text: string): Priority | null {
   const t = text.toLowerCase();
-  if (has(t, ["speed", "fast", "quick", "jaldi", "late", "der", "जल्दी", "देर"])) return "speed";
-  if (has(t, ["price", "cheap", "sasta", "paise", "overcharg", "zyada paise", "सस्ता", "पैसे"])) return "price";
-  if (has(t, ["quality", "achha", "accha", "theek", "kaam", "अच्छा", "ठीक"])) return "quality";
+  if (has(t, ["speed", "fast", "quick", "earliest", "jaldi", "late", "der", "जल्दी", "देर"])) return "speed";
+  if (has(t, ["price", "cheap", "lowest", "sasta", "paise", "overcharg", "zyada paise", "सस्ता", "पैसे"])) return "price";
+  if (has(t, ["quality", "rated", "rating", "achha", "accha", "theek", "kaam", "अच्छा", "ठीक"])) return "quality";
   return null;
 }
 
