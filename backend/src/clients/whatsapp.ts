@@ -91,9 +91,11 @@ export function cloudWhatsApp(cfg: CloudConfig, fetchFn: typeof fetch = fetch): 
 }
 
 // Until the Meta app keys are in .env: log what would be sent so flows still run end to end.
-export function offlineWhatsApp(log: (line: string) => void): WhatsAppClient {
+// Codes show only on a dev machine; on a server this log would let anyone sign in as anyone.
+export function offlineWhatsApp(log: (line: string) => void, showCodes = false): WhatsAppClient {
   const record = async (to: string, text: string, buttons: Button[] = []) => {
-    log(`[whatsapp offline] to ${maskPhone(to)}: ${text.replace(/\n/g, " / ")}${buttons.length ? ` [${buttons.map((b) => b.id).join(", ")}]` : ""}`);
+    const shown = showCodes ? text : text.replace(/\*\d{4,6}\*/g, "*****");
+    log(`[whatsapp offline] to ${maskPhone(to)}: ${shown.replace(/\n/g, " / ")}${buttons.length ? ` [${buttons.map((b) => b.id).join(", ")}]` : ""}`);
     return `offline.${randomUUID()}`;
   };
   return {

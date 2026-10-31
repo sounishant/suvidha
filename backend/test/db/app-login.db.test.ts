@@ -145,6 +145,20 @@ describe("web app login and customer data", () => {
     expect(job.booking!.startCode).toMatch(/^\d{4}$/);
   });
 
+  it("stops handing out codes after fifteen wrong guesses in a day", async () => {
+    const phone = "+919833333333";
+    await services.startLogin({ phone, role: "customer" });
+    await sql`update login_codes set attempts = 15, created_at = now() - interval '1 hour' where phone = ${phone}`;
+    expect(await services.startLogin({ phone, role: "customer" })).toEqual({ ok: false, error: "too_many_codes" });
+  });
+
+  it("drops the session of a blocked customer", async () => {
+    const session = (await services.session(token))!;
+    await sql`update customers set blocked = true where id = ${session.customerId}`;
+    expect(await services.session(token)).toBeNull();
+    await sql`update customers set blocked = false where id = ${session.customerId}`;
+  });
+
   it("ends the session on logout", async () => {
     const session = (await services.session(token))!;
     await services.endSession(session.id);

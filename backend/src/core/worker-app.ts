@@ -218,7 +218,8 @@ export async function startTrip(ctx: Ctx, session: Session, jobRef: string): Pro
   const b = await myBooking(ctx.sql, session, jobRef, false);
   if (!b) return { ok: false, error: "not_found" };
   if (b.started_at || b.trip_started_at) return { ok: false, error: "wrong_step" };
-  await ctx.sql`update bookings set trip_started_at = now() where id = ${b.id} and trip_started_at is null`;
+  const [moved] = await ctx.sql`update bookings set trip_started_at = now() where id = ${b.id} and trip_started_at is null returning id`;
+  if (!moved) return { ok: false, error: "wrong_step" };
   await logEvent(ctx.sql, b.job_id, "trip_started", "worker", {});
   ctx.background(() => tellCustomer(ctx, b.job_id, "on_the_way_customer", { name: b.worker_name, otp: b.start_otp }));
   return { ok: true };
@@ -259,7 +260,8 @@ export async function markDone(ctx: Ctx, session: Session, jobRef: string, final
   if (!b) return { ok: false, error: "not_found" };
   if (!b.started_at || b.done_at) return { ok: false, error: "wrong_step" };
   const price = finalPrice ?? b.quote_price;
-  await ctx.sql`update bookings set done_at = now(), final_price_inr = ${price} where id = ${b.id} and done_at is null`;
+  const [moved] = await ctx.sql`update bookings set done_at = now(), final_price_inr = ${price} where id = ${b.id} and done_at is null returning id`;
+  if (!moved) return { ok: false, error: "wrong_step" };
   await logEvent(ctx.sql, b.job_id, "job_done", "worker", { final_price_inr: price });
   ctx.background(() =>
     tellCustomer(ctx, b.job_id, "finish_code_customer", {

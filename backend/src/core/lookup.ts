@@ -44,7 +44,8 @@ export async function lookupCustomer(ctx: Ctx, caller: Caller) {
   const live = ctx.customerLineMode === "live";
   // While testing on one number, a worker with a booked job reaches it here; anyone else is a customer, workers included.
   const worker = live ? await workerByPhone(ctx, caller.phone) : undefined;
-  const booking = worker && !worker.blocked ? await workerBooking(ctx, worker) : null;
+  if (worker?.blocked) return REJECT;
+  const booking = worker ? await workerBooking(ctx, worker) : null;
   if (worker && booking?.transfer) {
     return {
       call_type: "inbound", caller_ref: await issueCallerRef(ctx, "customer", caller), caller_type: "worker",

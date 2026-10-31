@@ -5,7 +5,11 @@ import { bookingStep, type FormState } from "@/app/worker/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { ActiveJob } from "@/lib/api";
+
+// WhatsApp copies the code with its bold markers (*123456*); keep only the digits.
+const digitsOnly = (text: string) => text.replace(/\D/g, "");
 
 const NONE: FormState = { error: null };
 
@@ -32,7 +36,7 @@ function CodeForm({ jobRef, kind, label, submit }: { jobRef: string; kind: "star
     <form action={action} className="grid gap-4">
       <div className="grid gap-3">
         <label htmlFor={`${kind}-code`} className="text-base font-medium">{label}</label>
-        <InputOTP id={`${kind}-code`} name="code" maxLength={4} inputMode="numeric" autoComplete="off" aria-invalid={state.error ? true : undefined}>
+        <InputOTP pattern={REGEXP_ONLY_DIGITS} pasteTransformer={digitsOnly} id={`${kind}-code`} name="code" maxLength={4} inputMode="numeric" autoComplete="off" aria-invalid={state.error ? true : undefined}>
           <InputOTPGroup className="gap-2">
             {[0, 1, 2, 3].map((i) => (
               <InputOTPSlot key={i} index={i} className="size-14 rounded-xl border text-2xl font-semibold first:rounded-xl last:rounded-xl" />

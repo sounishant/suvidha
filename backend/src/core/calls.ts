@@ -74,7 +74,8 @@ export async function recordCallStatus(ctx: Ctx, call: CallStatus) {
     if (job) await logEvent(sql, job.id, "call_ended", "customer", { call_id: call.id, agent: "intake", minutes: (durationSec ?? 0) / 60 });
     return;
   }
-  if (caller.line === "customer" && ctx.customerLineMode === "live") {
+  const [worker] = await sql`select 1 from workers where phone = ${caller.phone}`;
+  if (caller.line === "customer" && ctx.customerLineMode === "live" && !worker) {
     await sql`
       insert into customers (phone, no_job_calls) values (${caller.phone}, 1)
       on conflict (phone) do update set no_job_calls = customers.no_job_calls + 1`;

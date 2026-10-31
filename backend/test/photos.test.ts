@@ -54,6 +54,14 @@ describe("downloadMedia", () => {
     expect(await offlineWhatsApp((l) => lines.push(l)).downloadMedia("12345")).toBeNull();
     expect(lines[0]).toContain("not downloaded");
   });
+
+  it("hides codes in the offline log except on a dev machine", async () => {
+    const lines: string[] = [];
+    await offlineWhatsApp((l) => lines.push(l)).sendText("919811111111", "Your code is *123456*");
+    await offlineWhatsApp((l) => lines.push(l), true).sendText("919811111111", "Your code is *123456*");
+    expect(lines[0]).not.toContain("123456");
+    expect(lines[1]).toContain("*123456*");
+  });
 });
 
 describe("photo storage", () => {

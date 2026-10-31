@@ -4,8 +4,12 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { cn } from "@/lib/utils";
 import { sendCode, verifyCode, type LoginState, type Role } from "./actions";
+
+// WhatsApp copies the code with its bold markers (*123456*); keep only the digits.
+const digitsOnly = (text: string) => text.replace(/\D/g, "");
 
 const START: LoginState = { step: "phone", phone: "", name: "", error: null };
 
@@ -100,7 +104,7 @@ export function LoginForm({ role }: { role: Role }) {
         <div className="grid gap-3">
           <label htmlFor="code" className="text-base font-medium">WhatsApp pe aaya code</label>
           <p className="text-sm text-muted-foreground">+91 {sent.phone.slice(0, 5)} {sent.phone.slice(5)} pe bheja gaya</p>
-          <InputOTP id="code" name="code" maxLength={6} inputMode="numeric" autoComplete="one-time-code" autoFocus aria-invalid={error ? true : undefined}>
+          <InputOTP pattern={REGEXP_ONLY_DIGITS} pasteTransformer={digitsOnly} id="code" name="code" maxLength={6} inputMode="numeric" autoComplete="one-time-code" autoFocus aria-invalid={error ? true : undefined}>
             <InputOTPGroup className="gap-1.5 sm:gap-2">
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <InputOTPSlot key={i} index={i} className="size-11 rounded-xl border text-xl font-semibold first:rounded-xl last:rounded-xl sm:size-14" />

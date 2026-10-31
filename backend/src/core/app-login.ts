@@ -12,6 +12,7 @@ const CODE_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 const CODES_PER_WINDOW = 3;
 const WINDOW_MINUTES = 15;
+const FAILED_PER_DAY = 15;
 const SESSION_DAYS = 30;
 
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
@@ -34,15 +35,21 @@ export async function startLogin(ctx: Ctx, input: { phone: string; role: Role })
   const phone = toE164(input.phone);
   if (!/^\+91\d{10}$/.test(phone)) return { ok: false, error: "invalid_phone" };
 
-  const [count] = await ctx.sql<{ recent: number }[]>`
-    select count(*)::int as recent from login_codes
-    where phone = ${phone} and created_at > now() - make_interval(mins => ${WINDOW_MINUTES})`;
-  if (count!.recent >= CODES_PER_WINDOW) return { ok: false, error: "too_many_codes" };
-
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-  await ctx.sql`
-    insert into login_codes (phone, role, code_hash, expires_at)
-    values (${phone}, ${input.role}, ${codeHash(phone, code)}, now() + make_interval(mins => ${CODE_MINUTES}))`;
+  // The lock makes count-then-insert atomic per phone; the daily cap bounds guessing across many codes.
+  const issued = await ctx.sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(hashtext(${phone}))`;
+    const [used] = await tx<{ recent: number; failed: number }[]>`
+      select count(*) filter (where created_at > now() - make_interval(mins => ${WINDOW_MINUTES}))::int as recent,
+             coalesce(sum(attempts), 0)::int as failed
+      from login_codes where phone = ${phone} and created_at > now() - interval '1 day'`;
+    if (used!.recent >= CODES_PER_WINDOW || used!.failed >= FAILED_PER_DAY) return false;
+    await tx`
+      insert into login_codes (phone, role, code_hash, expires_at)
+      values (${phone}, ${input.role}, ${codeHash(phone, code)}, now() + make_interval(mins => ${CODE_MINUTES}))`;
+    return true;
+  });
+  if (!issued) return { ok: false, error: "too_many_codes" };
 
   const account = await accountFor(ctx.sql, phone, input.role);
   if (!account && input.role === "worker") {
@@ -88,8 +95,11 @@ export async function verifyLogin(
 
 export async function sessionFor(ctx: Ctx, token: string): Promise<Session | null> {
   const [row] = await ctx.sql<{ id: string; phone: string; role: Role; customer_id: string | null; worker_id: string | null }[]>`
-    select id, phone, role, customer_id, worker_id from sessions
-    where token_hash = ${sha256(token)} and revoked_at is null and expires_at > now()`;
+    select s.id, s.phone, s.role, s.customer_id, s.worker_id from sessions s
+    left join customers c on c.id = s.customer_id
+    left join workers w on w.id = s.worker_id
+    where s.token_hash = ${sha256(token)} and s.revoked_at is null and s.expires_at > now()
+      and not coalesce(c.blocked, w.blocked, false)`;
   return row ? { id: row.id, phone: row.phone, role: row.role, customerId: row.customer_id, workerId: row.worker_id } : null;
 }
 

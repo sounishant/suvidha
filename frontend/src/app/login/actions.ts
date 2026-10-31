@@ -9,7 +9,7 @@ export type LoginState = { step: "phone" | "code"; phone: string; name: string; 
 
 const ERRORS: Record<string, string> = {
   invalid_phone: "Ye number sahi nahi lag raha. 10 ank ka mobile number daaliye.",
-  too_many_codes: "Bahut baar code maanga gaya. 15 minute baad phir koshish kijiye.",
+  too_many_codes: "Bahut baar code maanga ya galat daala gaya. Thodi der baad phir koshish kijiye.",
   wrong_code: "Code galat hai ya purana ho gaya. Dobara daaliye ya naya code mangaiye.",
   no_name: "Apna naam likhiye.",
   long_name: "Naam 60 akshar se chhota rakhiye.",

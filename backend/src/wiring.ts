@@ -14,7 +14,7 @@ export function buildCtx(config: Config, sql: Sql, log: (line: string) => void):
           phoneNumberId: config.WHATSAPP_PHONE_NUMBER_ID,
           apiVersion: config.WHATSAPP_API_VERSION,
         })
-      : offlineWhatsApp(log);
+      : offlineWhatsApp(log, config.RAILWAY_GIT_COMMIT_SHA === "dev");
   const customerLine =
     config.BOLNA_AGENT_ID_CUSTOMER && config.BOLNA_CUSTOMER_LINE_NUMBER
       ? { agentId: config.BOLNA_AGENT_ID_CUSTOMER, number: config.BOLNA_CUSTOMER_LINE_NUMBER }
