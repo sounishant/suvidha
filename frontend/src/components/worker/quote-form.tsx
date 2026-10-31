@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { sendQuote, type FormState } from "@/app/worker/actions";
+import { sendQuote, type FormState } from "@/app/(app)/worker/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";

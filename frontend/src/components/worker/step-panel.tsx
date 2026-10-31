@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { bookingStep, type FormState } from "@/app/worker/actions";
+import { bookingStep, type FormState } from "@/app/(app)/worker/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";

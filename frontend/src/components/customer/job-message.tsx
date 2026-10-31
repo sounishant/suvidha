@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { sendJobMessage, type JobFormState } from "@/app/account/actions";
+import { sendJobMessage, type JobFormState } from "@/app/(app)/account/actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
