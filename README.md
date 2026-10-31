@@ -3,7 +3,7 @@
 **Call once. We find the worker.**
 Household repairs for Tier 2 and Tier 3 India, booked with a single phone call.
 
-**Web app:** [suvidha-red.vercel.app](https://suvidha-red.vercel.app) · **Backend health:** [suvidha-backend-b88r.onrender.com/health](https://suvidha-backend-b88r.onrender.com/health)
+**Website:** [suvidha-red.vercel.app](https://suvidha-red.vercel.app) (try it live in the browser, or log in to the web app) · **Backend health:** [suvidha-backend-b88r.onrender.com/health](https://suvidha-backend-b88r.onrender.com/health)
 
 **[The problem](#the-problem) · [Our answer](#our-answer) · [How it works](#how-it-works) · [Pricing](#pricing-and-money) · [Trust and safety](#trust-and-safety) · [Results](#results-so-far) · [Architecture](#architecture) · [Run it](#run-it-yourself) · [Status](#status)**
 
@@ -69,6 +69,11 @@ The worker taps **On my way** on WhatsApp, and the customer is told the worker i
 
 Customers who prefer a screen can sign in with a code sent on WhatsApp to see their jobs, compare prices and book. Workers have their own simple app to see job requests, send a price, step through a booking with the start and finish codes, and track their earnings. The phone call and WhatsApp remain the main way to use Suvidha; the app is extra, never required.
 
+### Try it from the website
+
+- **Try it live:** talk to the real Customer Agent from the browser. Your WhatsApp messages appear on a phone on the page, and demo workers send their rates, so nobody's real phone rings. Up to 50 calls a day.
+- **Watch a real job:** a replay of a real booking in Roorkee, with both call recordings, the WhatsApp messages and the job card, from the first hello to a booked worker.
+
 ## Pricing and money
 
 | Who | Pays | Gets |
@@ -98,7 +103,7 @@ Payments run in a test mode for now; a payment provider (UPI links) plugs in at 
 Tested end to end on real phones in Roorkee (October 2026):
 
 - **About 1.5 minutes** for a customer's intake call (median across 17 calls with customers and workers).
-- **Under 3.5 minutes** from the customer hanging up to a booked worker, in every test (2 min 41 s to 3 min 28 s), most of it the worker's own call.
+- **Under 4 minutes** from the customer hanging up to a booked worker, in every test (2 min 41 s to 3 min 54 s), most of it the worker's own call.
 - The caller lookup that runs before every call answers in under a second.
 
 ## Architecture
@@ -114,12 +119,12 @@ Tested end to end on real phones in Roorkee (October 2026):
 - **Every request is checked, saved, then deduplicated.** Bolna requests carry a token and Meta's are signed. Each one is stored raw before anything acts on it, so any run can be traced call by call, and repeats are ignored.
 - **Timers live in the database.** Every wait (start calling workers in a minute, give up on an unanswered call, expire an unpaid booking) is a time stored on the job. A loop acts on whatever is due, so a restart loses nothing.
 - **Job states:** `draft → confirmed → inviting → quotes_in → awaiting_payment → booked → done`, plus `cancelled` and `no_workers`. Only allowed moves can happen.
-- **Web app:** Next.js 16 with shadcn. The browser never talks to the backend directly; the Next.js server does, with a shared token and the user's session.
+- **Web app:** Next.js 16 with shadcn. The browser never talks to the backend directly; the Next.js server does, with a shared token and the user's session. The one exception is Try it live, which uses its own public `/demo` endpoints: a signed token per visitor, demo numbers only, and a daily cap.
 
 ```
 backend/
   src/
-    routes/     bolna.ts, whatsapp.ts, app.ts, pay.ts   (HTTP in: auth, raw logging)
+    routes/     bolna.ts, whatsapp.ts, app.ts, pay.ts, demo.ts   (HTTP in: auth, raw logging)
     core/       card.ts          (call extraction → job card, worker quote)
                 jobs.ts          (job states, WhatsApp summary, follow-up questions)
                 quotes.ts        (worker calls, shortlist)    ranking.ts (scoring)
@@ -130,7 +135,7 @@ backend/
     db/         migrations/, seed.ts
   messages/     en.json, hi.json   (every WhatsApp line, English and Hinglish)
   test/         unit tests; test/db/ for database tests
-frontend/       Next.js customer and worker web app
+frontend/       Next.js landing page (Try it live, real-job replay) and the customer and worker web app
 ```
 
 ## Run it yourself
@@ -165,7 +170,7 @@ For local testing, expose the backend with a tunnel (for example `cloudflared tu
 
 The customer agent needs the "Job Card" extraction fields and the worker agent the "Quote" fields; the names the backend reads are in `backend/src/core/card.ts`. The web app reads `BACKEND_URL` and `APP_API_TOKEN`.
 
-**Tests:** `npm run typecheck`, `npm test` (93 unit tests) and `npm run test:db` (50 database tests, including full call-to-booking, payment and cancellation flows, in their own schema). `npm run sim` replays signed Bolna and WhatsApp requests against a running server.
+**Tests:** `npm run typecheck`, `npm test` (99 unit tests) and `npm run test:db` (56 database tests, including full call-to-booking, payment, cancellation and website demo flows, in their own schema). `npm run sim` replays signed Bolna and WhatsApp requests against a running server.
 
 **Deploying:** the backend runs on Render as a single web service (root folder `backend`, build `npm ci`, start `npm run migrate && npm start`, health check `/health`, Node 24). It must never sleep, because its timer loop drives the worker calls, so an uptime monitor pings `/health` every 5 minutes. The web app runs on Vercel with `frontend` as the root folder and two settings: `BACKEND_URL` (the backend's address) and `APP_API_TOKEN` (the same token the backend has).
 
@@ -177,6 +182,7 @@ The customer agent needs the "Job Card" extraction fields and the worker agent t
 | Worker calls, one fixed price each, ranking, WhatsApp shortlist | Working on real phones |
 | Booking fee, cancellations, refunds, credit | Built and tested; payments in test mode |
 | Customer and worker web app | Built and tested against the real backend |
+| Website: landing page, Try it live, real-job replay | Live |
 | Photos stored privately and shared with workers | Working |
 | Languages | Hindi and Hinglish on calls; WhatsApp in Hinglish or English |
 | Next | Real UPI payments, "Was it fixed?" with ratings and free redo, a worker "available today" status, regional languages, masked calling |
