@@ -123,19 +123,22 @@ async function sendBooked(ctx: Ctx, job: JobRow, quoteId: string, fee: number) {
   const lang = job.language;
   const balance = await creditBalance(ctx.sql, b!.customer_id);
   const when = b!.earliest_arrival ? whenLabel(lang, b!.earliest_arrival, now) : whenText(job, now);
-  const id = await ctx.whatsapp.sendText(toWhatsApp(job.phone), whatsappText(lang, "booked_customer", {
+  const id = await ctx.whatsapp.sendButtons(toWhatsApp(job.phone), whatsappText(lang, "booked_customer", {
     name: b!.name, when, price: priceText(lang, b!), fee, otp: b!.start_otp,
     credit: balance ? whatsappText(lang, "credit_balance", { credit: balance }) : "",
-  }));
+  }), [{ id: `cancel:${job.ref}`, title: whatsappText(lang, "button_cancel") }]);
   await recordSent(ctx, job, "booking", id);
 
   const wl = b!.language;
-  await ctx.whatsapp.sendText(toWhatsApp(b!.phone), whatsappText(wl, "booked_worker", {
+  await ctx.whatsapp.sendButtons(toWhatsApp(b!.phone), whatsappText(wl, "booked_worker", {
     job: jobLabel({ ...job, language: wl }), problem: job.problem ?? "", address: job.address ?? whatsappText(wl, "none"),
     when: b!.earliest_arrival ? whenLabel(wl, b!.earliest_arrival, now) : whenText({ ...job, language: wl }, now),
     contact: job.site_contact ?? job.customer_name ?? whatsappText(wl, "none"),
     safety: job.safety_note ? whatsappText(wl, "safety_line", { note: job.safety_note }) : "",
-  }));
+  }), [
+    { id: `trip:${job.ref}`, title: whatsappText(wl, "button_trip") },
+    { id: `wcancel:${job.ref}`, title: whatsappText(wl, "button_worker_cancel") },
+  ]);
 
   const others = await ctx.sql<{ phone: string; language: string }[]>`
     select w.phone, w.language from quotes q join workers w on w.id = q.worker_id

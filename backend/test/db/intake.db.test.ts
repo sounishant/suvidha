@@ -7,6 +7,7 @@ import type { StorageClient } from "../../src/clients/storage.ts";
 import type { ListMessage, WhatsAppClient } from "../../src/clients/whatsapp.ts";
 import type { Ctx } from "../../src/core/context.ts";
 import { expirePayments } from "../../src/core/bookings.ts";
+import { suvidhaCancels } from "../../src/core/cancellations.ts";
 import { expireQuoteCalls, startDueInvites } from "../../src/core/quotes.ts";
 import { migrate } from "../../src/db/migrate.ts";
 import { seed } from "../../src/db/seed.ts";
@@ -22,14 +23,14 @@ const NOON_IST = new Date("2026-10-27T06:30:00Z");
 const CIVIL_LINES = { lat: 29.8654, lng: 77.8867 };
 
 let clock = NOON_IST;
-type Sent = { to: string; kind: "text" | "list" | "image"; text: string; list?: ListMessage };
+type Sent = { to: string; kind: "text" | "list" | "image"; text: string; list?: ListMessage; buttons?: string[] };
 const sent: Sent[] = [];
 const calls: (CallRequest & { executionId: string })[] = [];
 const uploads: string[] = [];
 
 const whatsapp: WhatsAppClient = {
   sendText: async (to, text) => record({ to, kind: "text", text }),
-  sendButtons: async (to, text) => record({ to, kind: "text", text }),
+  sendButtons: async (to, text, buttons) => record({ to, kind: "text", text, buttons: buttons.map((b) => b.id) }),
   sendList: async (to, list) => record({ to, kind: "list", text: list.body, list }),
   sendImage: async (to, _link, caption) => record({ to, kind: "image", text: caption }),
   downloadMedia: async () => ({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/jpeg" }),
@@ -53,7 +54,7 @@ const bolna: BolnaClient = {
 
 const background = backgroundTasks();
 const ctx: Ctx = {
-  sql, whatsapp, bolna, storage, maps, payments: fakePayments("https://pay.test"),
+  sql, whatsapp, bolna, storage, maps, payments: fakePayments("https://pay.test", () => {}),
   customerLine: { agentId: "agent-customer", number: "+918000000000" },
   workerLine: { agentId: "agent-worker", number: "+918000000000" },
   customerLineMode: "live",
@@ -301,6 +302,7 @@ describe("the shortlist message", () => {
     expect(shortlist.list!.sections.map((s) => [s.title, s.rows.map((r) => r.title)])).toEqual([
       ["Rates", ["1. Sanskar", "2. Arjun"]],
       ["Visit ke baad rate", ["3. Bhola"]],
+      ["Aur", ["Request cancel karein"]],
     ]);
     expect(shortlist.list!.sections[0]!.rows[0]!.id).toMatch(/^book:[A-Z2-9]{4}$/);
     expect(shortlist.text).toContain("₹350 + ₹29 fee");
@@ -311,20 +313,20 @@ describe("the shortlist message", () => {
   });
 });
 
-describe("the booking fee", () => {
-  async function quotedJob(phone: string) {
-    ctx.limits.maxWorkerCalls = 4;
-    const j = await intakeCall(phone);
-    await tick(inSeconds(61));
-    await quoteCall(j.id, SANSKAR, { available: "yes", price: "350", earliest_arrival: "2026-10-27T17:30" });
-    await quoteCall(j.id, "+919000000101", { available: "yes", price: "2400", earliest_arrival: "2026-10-27T18:00" });
-    await unanswered(j.id, "+919000000102");
-    await unanswered(j.id, "+919000000103");
-    expect((await job(j.id)).status).toBe("quotes_in");
-    const refs = await sql`select w.name, q.ref from quotes q join workers w on w.id = q.worker_id where q.job_id = ${j.id}`;
-    return { id: j.id, ref: (name: string) => refs.find((r) => r.name === name)!.ref as string };
-  }
+async function quotedJob(phone: string) {
+  ctx.limits.maxWorkerCalls = 4;
+  const j = await intakeCall(phone);
+  await tick(inSeconds(61));
+  await quoteCall(j.id, SANSKAR, { available: "yes", price: "350", earliest_arrival: "2026-10-27T17:30" });
+  await quoteCall(j.id, "+919000000101", { available: "yes", price: "2400", earliest_arrival: "2026-10-27T18:00" });
+  await unanswered(j.id, "+919000000102");
+  await unanswered(j.id, "+919000000103");
+  expect((await job(j.id)).status).toBe("quotes_in");
+  const refs = await sql`select w.name, q.ref from quotes q join workers w on w.id = q.worker_id where q.job_id = ${j.id}`;
+  return { id: j.id, ref: (name: string) => refs.find((r) => r.name === name)!.ref as string };
+}
 
+describe("the booking fee", () => {
   it("gives the customer 5 minutes to pay, then shows the quotes again", async () => {
     const j = await quotedJob("+919100000021");
     await tap("919100000021", `book:${j.ref("Sanskar")}`);
@@ -347,6 +349,116 @@ describe("the booking fee", () => {
       { fee_inr: 29, status: "expired" }, { fee_inr: 99, status: "pending" },
     ]);
     expect((await job(j.id)).status).toBe("awaiting_payment");
+  });
+});
+
+async function bookedJob(phone: string) {
+  const j = await quotedJob(phone);
+  const to = phone.slice(1);
+  await tap(to, `book:${j.ref("Sanskar")}`);
+  const [p] = await sql`select id from payments where job_id = ${j.id} and status = 'pending'`;
+  await fetch(`${url}/pay/${p!.id}`, { method: "POST" });
+  await background.settle();
+  expect((await job(j.id)).status).toBe("booked");
+  return { ...j, jobRef: (await job(j.id)).ref as string, to };
+}
+const lastTo = (to: string) => sent.filter((s) => s.to === to).at(-1)!;
+const SANSKAR_WA = "919000000003";
+
+describe("cancelling on WhatsApp", () => {
+  it("asks first, then refunds the full fee when the customer cancels before the worker sets out", async () => {
+    const j = await bookedJob("+919100000031");
+    expect(lastTo(j.to).buttons).toEqual([`cancel:${j.jobRef}`]);
+    await tap(j.to, `cancel:${j.jobRef}`);
+    expect(lastTo(j.to).text).toContain("poore ₹29 wapas");
+    expect(lastTo(j.to).buttons).toEqual([`cancel_yes:${j.jobRef}`, "cancel_no"]);
+    expect((await job(j.id)).status).toBe("booked");
+
+    await tap(j.to, `cancel_yes:${j.jobRef}`);
+    expect((await job(j.id)).status).toBe("cancelled");
+    expect(await sql`select refunded_inr from payments where job_id = ${j.id} and status = 'paid'`).toEqual([{ refunded_inr: 29 }]);
+    expect(lastTo(j.to).text).toContain("₹29 aapko wapas");
+    expect(lastTo(SANSKAR_WA).text).toContain("Customer ne booking cancel kar di");
+  });
+
+  it("pays the worker ₹25 for travel when the customer cancels after the worker set out", async () => {
+    const j = await bookedJob("+919100000032");
+    expect(lastTo(SANSKAR_WA).buttons).toEqual([`trip:${j.jobRef}`, `wcancel:${j.jobRef}`]);
+    await tap(SANSKAR_WA, `trip:${j.jobRef}`);
+    expect(lastTo(j.to).text).toContain("Sanskar aapke kaam ke liye nikal chuke hain");
+
+    await tap(j.to, `cancel:${j.jobRef}`);
+    expect(lastTo(j.to).text).toContain("₹25 unke aane-jaane ke liye");
+    await tap(j.to, `cancel_yes:${j.jobRef}`);
+    expect(await sql`select refunded_inr from payments where job_id = ${j.id} and status = 'paid'`).toEqual([{ refunded_inr: 4 }]);
+    expect(await sql`select amount_inr, reason from payouts where job_id = ${j.id}`).toEqual([{ amount_inr: 25, reason: "travel" }]);
+    expect(lastTo(SANSKAR_WA).text).toContain("Aane-jaane ka paisa: ₹25");
+  });
+
+  it("refunds in full with ₹25 credit when the worker can't come, and uses the credit on the next booking", async () => {
+    const j = await bookedJob("+919100000033");
+    await tap(SANSKAR_WA, `wcancel:${j.jobRef}`);
+    expect((await job(j.id)).status).toBe("booked");
+    await tap(SANSKAR_WA, `wcancel_yes:${j.jobRef}`);
+    expect((await job(j.id)).status).toBe("cancelled");
+    expect(lastTo(j.to).text).toContain("Maafi ka credit: ₹25");
+    expect(lastTo(j.to).text).toContain("Suvidha credit: ₹25");
+
+    clock = NOON_IST;
+    const next = await quotedJob("+919100000033");
+    await tap(j.to, `book:${next.ref("Sanskar")}`);
+    expect(await sql`select fee_inr, credit_inr, amount_inr from payments where job_id = ${next.id}`).toEqual([{ fee_inr: 29, credit_inr: 25, amount_inr: 4 }]);
+    expect(lastTo(j.to).text).toContain("₹25 aapke credit se, ab ₹4 baaki");
+  });
+
+  it("treats a worker who never set out as a no-show and calls them last for two days", async () => {
+    const j = await bookedJob("+919100000034");
+    clock = new Date("2026-10-27T12:31:00Z"); // 31 minutes after Sanskar's 5:30 pm arrival
+    await tap(j.to, `cancel:${j.jobRef}`);
+    expect(lastTo(j.to).text).toContain("abhi tak nahi nikle");
+    await tap(j.to, `cancel_yes:${j.jobRef}`);
+    expect(await sql`select cancel_cause from bookings where job_id = ${j.id}`).toEqual([{ cancel_cause: "no_show" }]);
+    expect(lastTo(j.to).text).toContain("Maafi ka credit: ₹25");
+
+    clock = NOON_IST;
+    const next = await intakeCall("+919100000035");
+    await tick(inSeconds(61));
+    expect((await callsFor(next.id)).map((c) => c.to)).not.toContain(SANSKAR);
+    await sql`update workers set last_no_show_at = null`;
+  });
+
+  it("lets the customer cancel a request from the shortlist; workers who quoted are told", async () => {
+    const j = await quotedJob("+919100000036");
+    const shortlist = sent.find((s) => s.kind === "list" && s.to === "919100000036")!;
+    expect(shortlist.list!.sections.at(-1)!.rows).toEqual([{ id: `cancel:${(await job(j.id)).ref}`, title: "Request cancel karein" }]);
+    await tap("919100000036", `cancel_yes:${(await job(j.id)).ref}`);
+    expect((await job(j.id)).status).toBe("cancelled");
+    expect(lastTo("919100000036").text).toContain("Request cancel ho gayi");
+    expect(lastTo(SANSKAR_WA).text).toContain("request cancel kar di");
+  });
+
+  it("only lets the job's own customer and worker cancel it", async () => {
+    const j = await bookedJob("+919100000037");
+    await tap("919100000099", `cancel_yes:${j.jobRef}`);
+    await tap("919000000101", `wcancel_yes:${j.jobRef}`);
+    expect((await job(j.id)).status).toBe("booked");
+  });
+
+  it("lets the team cancel a booking with a full refund and apology credit", async () => {
+    const j = await bookedJob("+919100000038");
+    expect(await suvidhaCancels(ctx, j.jobRef)).toBe(true);
+    expect(await sql`select cancel_cause from bookings where job_id = ${j.id}`).toEqual([{ cancel_cause: "suvidha" }]);
+    expect(lastTo(j.to).text).toContain("humein yeh booking cancel karni padi");
+    expect(await suvidhaCancels(ctx, j.jobRef)).toBe(false);
+  });
+
+  it("cancels a booking made before the booking fee, with nothing to refund", async () => {
+    const j = await bookedJob("+919100000039");
+    await sql`delete from payments where job_id = ${j.id}`;
+    expect(await suvidhaCancels(ctx, j.jobRef)).toBe(true);
+    expect(await sql`select amount_inr, reason from credits c join customers u on u.id = c.customer_id where u.phone = '+919100000039'`)
+      .toEqual([{ amount_inr: 25, reason: "apology" }]);
+    expect(lastTo(j.to).text).not.toContain("wapas bhej");
   });
 });
 

@@ -22,7 +22,7 @@ const whatsapp: WhatsAppClient = {
 };
 const background = backgroundTasks();
 const ctx: Ctx = {
-  sql, whatsapp, payments: fakePayments("https://pay.test"),
+  sql, whatsapp, payments: fakePayments("https://pay.test", () => {}),
   bolna: { call: async () => "exec" } as BolnaClient,
   storage: { upload: async () => true, signedUrl: async () => "" } as StorageClient,
   maps: { geocode: async () => null } as MapsClient,

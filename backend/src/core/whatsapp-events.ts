@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { chooseQuote } from "./bookings.ts";
+import { askCustomerCancel, askWorkerCancel, customerCancels, keepBooking, startTrip, workerCancels } from "./cancellations.ts";
 import type { Ctx } from "./context.ts";
 import { addPhoto, answerFollowup, noteCustomerChange } from "./jobs.ts";
 import { toE164 } from "./phone.ts";
@@ -30,6 +31,16 @@ const Envelope = z.object({
   ),
 });
 
+const BUTTONS: Record<string, (ctx: Ctx, phone: string, ref: string) => Promise<unknown>> = {
+  book: chooseQuote,
+  cancel: askCustomerCancel,
+  cancel_yes: customerCancels,
+  cancel_no: keepBooking,
+  trip: startTrip,
+  wcancel: askWorkerCancel,
+  wcancel_yes: workerCancels,
+};
+
 export async function handleWhatsApp(ctx: Ctx, body: unknown) {
   const envelope = Envelope.safeParse(body);
   if (!envelope.success) return;
@@ -39,8 +50,9 @@ export async function handleWhatsApp(ctx: Ctx, body: unknown) {
     const phone = toE164(message.from);
     await ctx.sql`update customers set has_whatsapp = true where phone = ${phone}`;
     const choice = message.interactive?.list_reply?.id ?? message.interactive?.button_reply?.id ?? "";
-    if (choice.startsWith("book:")) {
-      await chooseQuote(ctx, phone, choice.slice("book:".length));
+    const [action, ref = ""] = choice.split(":");
+    if (Object.hasOwn(BUTTONS, action!)) {
+      await BUTTONS[action!]!(ctx, phone, ref);
     } else if (message.type === "image" && message.image) {
       const photo = await addPhoto(ctx, phone, message.image.id);
       if (photo?.path && (photo.status === "inviting" || photo.status === "quotes_in")) await forwardPhoto(ctx, photo.jobId);

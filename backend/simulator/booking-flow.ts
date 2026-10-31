@@ -50,5 +50,8 @@ export async function runBookingFlow(target: Target): Promise<Check[]> {
   const tap = await whatsapp(payloads.bookTap("ZZZZ", draftPhone.slice(1)));
   check("a shortlist tap for an unknown quote is ignored safely", tap.status === 200, tap.status);
 
+  const pay = await fetch(`${target.baseUrl}/pay/${randomUUID()}`);
+  check("an unknown payment link shows not found", pay.status === 404, pay.status);
+
   return checks;
 }

@@ -1,9 +1,10 @@
 import { distanceKm } from "../clients/maps.ts";
+import type { ListMessage } from "../clients/whatsapp.ts";
 import { label, priceLabel, tradeName, whatsappText, whenLabel } from "../messages.ts";
 import type { WorkerQuote } from "./card.ts";
 import type { Ctx } from "./context.ts";
 import { logEvent } from "./events.ts";
-import { bookingFee } from "./fees.ts";
+import { bookingFee, NO_SHOW_CALL_LAST_DAYS } from "./fees.ts";
 import { jobById, jobLabel, moveJob, recordSent, whenText, type JobRow } from "./jobs.ts";
 import { toWhatsApp } from "./phone.ts";
 import { rankQuotes, type Measure, type RankedQuote } from "./ranking.ts";
@@ -11,19 +12,21 @@ import { withFreshRef } from "./refs.ts";
 
 const PHOTO_LINK_SEC = 3600;
 
-type Candidate = { id: string; name: string; phone: string; language: string; distanceKm: number | null; skilled: boolean };
+type Candidate = { id: string; name: string; phone: string; language: string; distanceKm: number | null; skilled: boolean; noShow: boolean };
 
-// Right skill first, then nearest; workers without a location go last.
+// Right skill first, then nearest; workers without a location, or who skipped a booking lately, go last.
 async function candidates(ctx: Ctx, job: JobRow): Promise<Candidate[]> {
-  const rows = await ctx.sql<{ id: string; name: string; phone: string; language: string; lat: number | null; lng: number | null; skilled: boolean }[]>`
-    select w.id, w.name, w.phone, w.language, w.lat, w.lng, (${job.job_type} = any(w.skills)) as skilled
+  const noShowSince = new Date(ctx.now().getTime() - NO_SHOW_CALL_LAST_DAYS * 86_400_000);
+  const rows = await ctx.sql<{ id: string; name: string; phone: string; language: string; lat: number | null; lng: number | null; skilled: boolean; noShow: boolean }[]>`
+    select w.id, w.name, w.phone, w.language, w.lat, w.lng, (${job.job_type} = any(w.skills)) as skilled,
+           coalesce(w.last_no_show_at > ${noShowSince}, false) as "noShow"
     from workers w
     where w.verified and not w.blocked and ${job.trade} = any(w.trades)
       and not exists (select 1 from quotes q where q.job_id = ${job.id} and q.worker_id = w.id)`;
   const here = job.lat !== null && job.lng !== null ? { lat: job.lat, lng: job.lng } : null;
   return rows
     .map(({ lat, lng, ...w }) => ({ ...w, distanceKm: here && lat !== null && lng !== null ? distanceKm(here, { lat, lng }) : null }))
-    .sort((a, b) => Number(b.skilled) - Number(a.skilled) || (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    .sort((a, b) => Number(a.noShow) - Number(b.noShow) || Number(b.skilled) - Number(a.skilled) || (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
 }
 
 export async function startInviting(ctx: Ctx, jobId: string) {
@@ -303,9 +306,10 @@ function shortlist(job: JobRow, ranked: RankedQuote[], byId: Map<string, QuoteRo
       description: cut([withFee(q), t("row_description", { when: when(q), rating: ratingText(lang, q) })].filter(Boolean).join(" · "), 72),
     };
   };
-  const sections = (
+  const sections: ListMessage["sections"] = (
     [["ranked", "section_ranked"], ["visit", "section_visit"], ["later", "section_later"]] as const
   ).map(([g, title]) => ({ title: t(title), rows: inGroup(g).map(row) })).filter((s) => s.rows.length);
+  sections.push({ title: t("section_more"), rows: [{ id: `cancel:${job.ref}`, title: t("row_cancel") }] });
 
   return { header: t("shortlist_header", { count: ranked.length }), body: cut(lines.join("\n"), 1024), button: t("list_button"), sections };
 }

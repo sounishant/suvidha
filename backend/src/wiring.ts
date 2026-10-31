@@ -33,7 +33,7 @@ export function buildCtx(config: Config, sql: Sql, log: (line: string) => void):
         ? supabaseStorage({ url: config.SUPABASE_URL, serviceRoleKey: config.SUPABASE_SERVICE_ROLE_KEY })
         : offlineStorage(log),
     maps: config.GOOGLE_MAPS_API_KEY ? googleMaps(config.GOOGLE_MAPS_API_KEY) : offlineMaps(log),
-    payments: fakePayments(config.BACKEND_PUBLIC_URL ?? `http://localhost:${config.PORT}`),
+    payments: fakePayments(config.BACKEND_PUBLIC_URL ?? `http://localhost:${config.PORT}`, log),
     customerLine,
     workerLine,
     customerLineMode: config.CUSTOMER_LINE_MODE,
