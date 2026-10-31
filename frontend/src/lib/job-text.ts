@@ -3,19 +3,19 @@ import type { JobStatus, Quote } from "./api";
 type StatusText = { label: string; line: string; open: boolean };
 
 export const STATUS: Record<JobStatus, StatusText> = {
-  draft: { label: "Jaankari baaki", line: "WhatsApp pe pucha gaya sawaal ka jawab dijiye, phir hum kaarigar dhoondhenge.", open: true },
-  confirmed: { label: "Card taiyaar", line: "Aapka kaam ka card ban gaya. Ek minute mein kaarigaron ko call shuru hogi.", open: true },
-  inviting: { label: "Kaarigar dhoondh rahe hain", line: "Paas ke kaarigaron se daam le rahe hain. Teen daam aate hi aapko batayenge.", open: true },
-  quotes_in: { label: "Daam aa gaye", line: "Neeche daam dekhiye aur jo kaarigar theek lage, use chuniye.", open: true },
-  awaiting_payment: { label: "Booking fee baaki", line: "Booking fee pay kijiye, phir booking pakki ho jaayegi. Link WhatsApp pe bhi bheja hai.", open: true },
-  booked: { label: "Kaarigar booked", line: "Kaarigar aa raha hai. Pahunchne pe use start code bataiye.", open: true },
-  done: { label: "Kaam ho gaya", line: "Ye kaam poora ho chuka hai.", open: false },
-  cancelled: { label: "Cancel hua", line: "Ye kaam cancel ho gaya.", open: false },
-  no_workers: { label: "Kaarigar nahi mile", line: "Maaf kijiye, abhi aapke ilaake mein koi kaarigar uplabdh nahi tha.", open: false },
+  draft: { label: "Details needed", line: "Answer the question we sent on WhatsApp, then we’ll find workers.", open: true },
+  confirmed: { label: "Job card ready", line: "Your job card is ready. We’ll start calling workers within a minute.", open: true },
+  inviting: { label: "Finding workers", line: "We’re getting prices from nearby workers and will tell you as soon as three are in.", open: true },
+  quotes_in: { label: "Prices are in", line: "See the prices below and choose the worker you like.", open: true },
+  awaiting_payment: { label: "Booking fee due", line: "Pay the booking fee to confirm your booking. We’ve sent the link on WhatsApp too.", open: true },
+  booked: { label: "Worker booked", line: "Your worker is coming. Tell them the start code when they arrive.", open: true },
+  done: { label: "Done", line: "This job is complete.", open: false },
+  cancelled: { label: "Cancelled", line: "This job was cancelled.", open: false },
+  no_workers: { label: "No workers found", line: "Sorry, no worker was free in your area this time.", open: false },
 };
 
 // The steps a customer sees; draft and confirmed both count as the first step.
-export const STEPS = ["Card bana", "Daam aa rahe", "Kaarigar chuna", "Kaam ho gaya"] as const;
+export const STEPS = ["Job card", "Getting prices", "Worker chosen", "Done"] as const;
 export function stepOf(status: JobStatus) {
   if (status === "draft" || status === "confirmed") return 0;
   if (status === "inviting" || status === "quotes_in") return 1;
@@ -27,23 +27,23 @@ export const TRADE: Record<string, string> = {
   plumber: "Plumber",
   electrician: "Electrician",
   carpenter: "Carpenter",
-  other: "Kaarigar",
+  other: "Worker",
 };
 
 const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 export function quotePrice(q: Pick<Quote, "priceType" | "price" | "visitCharge">) {
-  if (q.priceType === "visit_only") return q.visitCharge ? `Dekh ke batayenge · visit ${rupees(q.visitCharge)}` : "Dekh ke batayenge";
+  if (q.priceType === "visit_only") return q.visitCharge ? `Price after visit · visit ${rupees(q.visitCharge)}` : "Price after visit";
   return q.price !== null ? rupees(q.price) : "—";
 }
 
 export const MATERIAL: Record<string, string> = {
-  customer_has: "Saaman aapke paas hai",
-  worker_brings: "Kaarigar saaman laayega",
-  not_sure: "Saaman pakka nahi",
-  yes: "Saaman shaamil",
-  no: "Saaman alag se",
-  partly: "Kuch saaman shaamil",
+  customer_has: "You have the material",
+  worker_brings: "Worker brings the material",
+  not_sure: "Material not decided",
+  yes: "Material included",
+  no: "Material extra",
+  partly: "Some material included",
 };
 
 export { rupees };

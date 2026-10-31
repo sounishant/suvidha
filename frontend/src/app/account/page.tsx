@@ -16,12 +16,12 @@ export const metadata: Metadata = { title: "Home · suvidha" };
 export default function HomePage() {
   return (
     <div className="grid gap-10">
-      <Suspense fallback={<div className="h-28 rounded-2xl bg-border/50" aria-busy="true" aria-label="Load ho raha hai" />}>
+      <Suspense fallback={<div className="h-28 rounded-2xl bg-border/50" aria-busy="true" aria-label="Loading" />}>
         <Greeting />
       </Suspense>
 
       <section aria-labelledby="services" className="grid gap-4">
-        <h2 id="services" className="text-xl font-semibold tracking-[-0.02em]">Kya theek karwana hai?</h2>
+        <h2 id="services" className="text-xl font-semibold tracking-[-0.02em]">What needs fixing?</h2>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {SERVICES.map((s) => (
             <li key={s.slug}>
@@ -44,12 +44,12 @@ export default function HomePage() {
       </Suspense>
 
       <section aria-labelledby="how" className="grid gap-4 rounded-2xl bg-primary p-5 text-white sm:p-7">
-        <h2 id="how" className="text-xl font-semibold tracking-[-0.02em]">Kaise hota hai</h2>
+        <h2 id="how" className="text-xl font-semibold tracking-[-0.02em]">How it works</h2>
         <ol className="grid gap-4 sm:grid-cols-3">
           {[
-            ["Call ya WhatsApp kijiye", "Apne shabdon mein batayiye kya kharab hai."],
-            ["Teen daam aayenge", "Paas ke kaarigar daam aur samay bhejenge. Aap chuniye."],
-            ["Code se kaam shuru", "Kaarigar aaye to start code bataiye. Theek na ho to dobara, bina charge."],
+            ["Call or WhatsApp us", "Tell us what’s broken, in your own words."],
+            ["Get three prices", "Nearby workers send their price and time. You choose."],
+            ["Start with a code", "Give the worker the start code when they arrive. Not fixed? We redo it free."],
           ].map(([title, line], i) => (
             <li key={title} className="grid grid-cols-[auto_1fr] gap-3">
               <span className="grid size-8 place-items-center rounded-full bg-white text-sm font-semibold text-primary tabular-nums">{i + 1}</span>
@@ -64,13 +64,13 @@ export default function HomePage() {
 
       <section aria-labelledby="help" className="grid gap-3 rounded-2xl border bg-white p-5 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:p-6">
         <div>
-          <h2 id="help" className="text-lg font-semibold">Madad chahiye?</h2>
-          <p className="text-muted-foreground">Kisi bhi booking ke baare mein hamari team se baat kijiye.</p>
+          <h2 id="help" className="text-lg font-semibold">Need help?</h2>
+          <p className="text-muted-foreground">Talk to our team about any booking.</p>
         </div>
         <a href={CALL.tel} className={cn(buttonVariants(), "h-12 rounded-xl px-5 text-base")}>
-          <Phone className="size-4" aria-hidden="true" /> Call kijiye
+          <Phone className="size-4" aria-hidden="true" /> Call us
         </a>
-        <a href={whatsappLink("Namaste suvidha, mujhe madad chahiye.")} className={cn(buttonVariants({ variant: "secondary" }), "h-12 rounded-xl px-5 text-base")}>
+        <a href={whatsappLink("Hello suvidha, I need help.")} className={cn(buttonVariants({ variant: "secondary" }), "h-12 rounded-xl px-5 text-base")}>
           <MessageCircle className="size-4" aria-hidden="true" /> WhatsApp
         </a>
       </section>
@@ -88,8 +88,8 @@ async function Greeting() {
     <section aria-labelledby="hello" className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 id="hello" className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Namaste{first ? `, ${first}` : ""}</h1>
-          <p className="mt-1 text-muted-foreground">Aaj kya theek karwana hai?</p>
+          <h1 id="hello" className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Hello{first ? `, ${first}` : ""}</h1>
+          <p className="mt-1 text-muted-foreground">What needs fixing today?</p>
         </div>
         <p className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-sm font-medium">
           <MapPin className="size-4 text-primary" aria-hidden="true" /> Roorkee
@@ -97,11 +97,11 @@ async function Greeting() {
       </div>
       {open.length > 0 && (
         <div className="grid gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Chal raha kaam</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">In progress</h2>
           <OpenJobCard job={open[0]!} />
           {open.length > 1 && (
             <Link href="/account/bookings" className="inline-flex w-fit items-center gap-1 text-sm font-medium text-primary">
-              Aur {open.length - 1} kaam chal rahe hain <ChevronRight className="size-4" aria-hidden="true" />
+              {open.length - 1} more in progress <ChevronRight className="size-4" aria-hidden="true" />
             </Link>
           )}
         </div>
@@ -123,12 +123,12 @@ async function PastWorkers() {
   return (
     <section aria-labelledby="workers" className="grid gap-4">
       <div>
-        <h2 id="workers" className="text-xl font-semibold tracking-[-0.02em]">Aapke kaarigar</h2>
-        <p className="text-sm text-muted-foreground">Pasand aaye? Unhi ko phir se bulaiye.</p>
+        <h2 id="workers" className="text-xl font-semibold tracking-[-0.02em]">Your workers</h2>
+        <p className="text-sm text-muted-foreground">Liked their work? Book them again.</p>
       </div>
       <ul className="grid gap-3 sm:grid-cols-2">
         {workers.map((j) => {
-          const trade = TRADE[j.trade] ?? "Kaarigar";
+          const trade = TRADE[j.trade] ?? "Worker";
           return (
             <li key={j.worker} className="flex items-center gap-4 rounded-2xl border bg-white p-4">
               <span className="grid size-12 shrink-0 place-items-center rounded-full bg-secondary text-lg font-semibold text-primary" aria-hidden="true">
@@ -139,10 +139,10 @@ async function PastWorkers() {
                 <span className="text-sm text-muted-foreground">{trade} · {j.title}</span>
               </span>
               <a
-                href={whatsappLink(`Namaste suvidha, mujhe phir se ${j.worker} (${trade}) chahiye.`)}
+                href={whatsappLink(`Hello suvidha, I’d like ${j.worker} (${trade}) again.`)}
                 className={cn(buttonVariants({ variant: "secondary" }), "h-11 rounded-xl px-4 text-sm")}
               >
-                Phir se bulaiye
+                Book again
               </a>
             </li>
           );

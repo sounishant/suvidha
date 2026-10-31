@@ -8,7 +8,7 @@ import { jobById, jobLabel, moveJob, whenText, type JobStatus } from "./jobs.ts"
 import { toWhatsApp } from "./phone.ts";
 import { recordWorkerCall } from "./quotes.ts";
 
-const APP_LANG = "hi";
+const APP_LANG = "en";
 const MAX_CODE_ATTEMPTS = 5;
 
 type InviteRow = {

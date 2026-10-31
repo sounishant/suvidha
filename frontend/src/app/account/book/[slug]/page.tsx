@@ -38,28 +38,28 @@ async function Book({ params }: Pick<PageProps<"/account/book/[slug]">, "params"
           <ServiceIcon slug={service.slug} className="size-8" />
         </span>
         <div>
-          <h1 className="text-3xl font-semibold tracking-[-0.035em]">{service.name} chahiye?</h1>
-          <p className="mt-2 text-lg text-muted-foreground">{service.hint}. Batayiye kya kharab hai, teen paas ke kaarigar apna daam bhejenge.</p>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em]">{service.name}</h1>
+          <p className="mt-2 text-lg text-muted-foreground">{service.hint}. Tell us what’s broken and three nearby workers will send you their price.</p>
         </div>
         <div className="grid gap-3">
           <a href={CALL.tel} className={cn(buttonVariants(), "h-14 rounded-xl text-lg")}>
-            <Phone className="size-5" aria-hidden="true" /> Call kijiye · {CALL.label}
+            <Phone className="size-5" aria-hidden="true" /> Call · {CALL.label}
           </a>
-          <a href={whatsappLink(`Namaste suvidha, ${service.ask}.`)} className={cn(buttonVariants({ variant: "secondary" }), "h-14 rounded-xl text-lg")}>
-            <MessageCircle className="size-5" aria-hidden="true" /> WhatsApp pe bataiye
+          <a href={whatsappLink(`Hello suvidha, ${service.ask}.`)} className={cn(buttonVariants({ variant: "secondary" }), "h-14 rounded-xl text-lg")}>
+            <MessageCircle className="size-5" aria-hidden="true" /> Tell us on WhatsApp
           </a>
         </div>
       </section>
 
       <section aria-labelledby="tips" className="grid gap-3 rounded-2xl bg-white/70 p-6">
-        <h2 id="tips" className="text-lg font-semibold">Call pe ye taiyaar rakhiye</h2>
+        <h2 id="tips" className="text-lg font-semibold">Keep this ready for the call</h2>
         <ul className="grid gap-2 text-base text-muted-foreground">
-          <li>Kya kharab hai, apne shabdon mein. Jaise: “kitchen ka nal tapak raha hai”.</li>
-          <li>Kab tak theek hona chahiye.</li>
-          <li>Ghar ka pata aur paas ka koi landmark.</li>
-          <li>Ho sake to baad mein WhatsApp pe ek photo bhejiye.</li>
+          <li>What’s broken, in your own words. For example: “the kitchen tap is dripping”.</li>
+          <li>When it needs to be fixed by.</li>
+          <li>Your address and a landmark nearby.</li>
+          <li>If you can, send a photo on WhatsApp afterwards.</li>
         </ul>
-        <p className="text-sm text-muted-foreground">Priya, hamari AI awaaz, call uthayegi aur sab dohra ke sunayegi.</p>
+        <p className="text-sm text-muted-foreground">Priya, our AI voice, answers the call and reads everything back to you.</p>
       </section>
     </div>
   );

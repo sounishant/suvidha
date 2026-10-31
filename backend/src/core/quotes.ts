@@ -225,7 +225,7 @@ async function finish(ctx: Ctx, jobId: string) {
   );
   const byId = new Map(quotes.map((q) => [q.id, q]));
   const now = ctx.now();
-  const reasons = new Map(ranked.map((r) => [r.id, reasonFor(job.language, r, ranked, byId, now)]));
+  const reasons = quoteReasons(job.language, ranked, quotes, now);
 
   const to = ranked.length ? "quotes_in" : "no_workers";
   const moved = await ctx.sql.begin(async (tx) => {
@@ -250,8 +250,16 @@ function ratingText(lang: string, q: Pick<QuoteRow, "rating" | "rated_jobs">) {
   return q.rated_jobs >= 3 && q.rating !== null ? q.rating.toFixed(1) : whatsappText(lang, "rating_new");
 }
 
+type ReasonQuote = Pick<QuoteRow, "id" | "price" | "rating" | "rated_jobs" | "earliest_arrival">;
+
+// The ranking is stored once; WhatsApp words its reasons in the caller's language, the app in its own.
+export function quoteReasons(lang: string, ranked: RankedQuote[], quotes: ReasonQuote[], now: Date) {
+  const byId = new Map(quotes.map((q) => [q.id, q]));
+  return new Map(ranked.map((r) => [r.id, reasonFor(lang, r, ranked, byId, now)]));
+}
+
 // Built from the measure that added most to the score, e.g. "Can come soonest: today 5:30 pm".
-function reasonFor(lang: string, r: RankedQuote, ranked: RankedQuote[], byId: Map<string, QuoteRow>, now: Date) {
+function reasonFor(lang: string, r: RankedQuote, ranked: RankedQuote[], byId: Map<string, ReasonQuote>, now: Date) {
   if (r.group !== "ranked" || !r.lead) return null;
   const q = byId.get(r.id)!;
   const lead: Measure = r.lead;

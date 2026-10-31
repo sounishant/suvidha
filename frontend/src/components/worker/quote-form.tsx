@@ -8,14 +8,14 @@ import { cn } from "@/lib/utils";
 import { ARRIVAL, DECLINE } from "@/lib/worker-text";
 
 const PRICE_TYPES = [
-  { value: "fixed", label: "Pakka daam" },
-  { value: "visit_only", label: "Dekh ke batayenge" },
+  { value: "fixed", label: "Fixed price" },
+  { value: "visit_only", label: "Price after visit" },
 ] as const;
 
 const MATERIAL = [
-  { value: "yes", label: "Daam mein shaamil" },
-  { value: "partly", label: "Kuch shaamil" },
-  { value: "no", label: "Alag se" },
+  { value: "yes", label: "Included" },
+  { value: "partly", label: "Partly included" },
+  { value: "no", label: "Extra" },
 ] as const;
 
 export function QuoteForm({ quoteRef }: { quoteRef: string }) {
@@ -25,34 +25,34 @@ export function QuoteForm({ quoteRef }: { quoteRef: string }) {
 
   return (
     <form action={action} className="grid gap-6">
-      <Choice legend="Ye kaam kar payenge?" name="available" value={available} onChange={(v) => setAvailable(v as "yes" | "no")}
-        options={[{ value: "yes", label: "Haan, kar dunga" }, { value: "no", label: "Nahi" }]} />
+      <Choice legend="Can you do this job?" name="available" value={available} onChange={(v) => setAvailable(v as "yes" | "no")}
+        options={[{ value: "yes", label: "Yes, I’ll do it" }, { value: "no", label: "No" }]} />
 
       {available === "no" ? (
-        <Choice legend="Kyon nahi?" name="declineReason" options={DECLINE} defaultValue="busy" />
+        <Choice legend="Why not?" name="declineReason" options={DECLINE} defaultValue="busy" />
       ) : (
         <>
-          <Choice legend="Daam kaisa hai?" name="priceType" value={priceType} onChange={(v) => setPriceType(v as typeof priceType)} options={PRICE_TYPES} />
+          <Choice legend="How will you price it?" name="priceType" value={priceType} onChange={(v) => setPriceType(v as typeof priceType)} options={PRICE_TYPES} />
 
           {priceType === "visit_only" ? (
-            <Rupees name="visitCharge" label="Aane ka charge (visit)" hint="Dekh ke kaam ka daam baad mein batayenge. Khaali chhodiye agar visit free hai." />
+            <Rupees name="visitCharge" label="Visit charge" hint="You tell the job price after seeing it. Leave empty if the visit is free." />
           ) : (
-            <Rupees name="price" label="Aapka daam" hint="Customer yahi daam dekhega. Kaam ke baad isse zyada mat maangiye." required />
+            <Rupees name="price" label="Your price" hint="The customer sees this price. Don’t ask for more after the job." required />
           )}
 
-          <Choice legend="Saaman ka kharcha" name="materialIncluded" options={MATERIAL} defaultValue="no" />
-          <Choice legend="Kitni der mein pahunchenge?" name="arrivalInMinutes" options={ARRIVAL.map((a) => ({ value: String(a.minutes), label: a.label }))} defaultValue="60" />
+          <Choice legend="Material cost" name="materialIncluded" options={MATERIAL} defaultValue="no" />
+          <Choice legend="How soon can you arrive?" name="arrivalInMinutes" options={ARRIVAL.map((a) => ({ value: String(a.minutes), label: a.label }))} defaultValue="60" />
         </>
       )}
 
       <div className="grid gap-2">
-        <label htmlFor="note" className="text-base font-medium">Customer ke liye kuch kehna hai? <span className="font-normal text-muted-foreground">(zaroori nahi)</span></label>
-        <Input id="note" name="note" maxLength={200} placeholder="Jaise: naya washer lagana padega" className="h-12 rounded-xl bg-white px-4 text-base" />
+        <label htmlFor="note" className="text-base font-medium">Anything to tell the customer? <span className="font-normal text-muted-foreground">(optional)</span></label>
+        <Input id="note" name="note" maxLength={200} placeholder="e.g. the washer needs replacing" className="h-12 rounded-xl bg-white px-4 text-base" />
       </div>
 
       {state.error && <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive" role="alert">{state.error}</p>}
       <Button type="submit" disabled={pending} className="h-14 rounded-xl text-lg">
-        {pending ? "Bhej rahe hain…" : available === "yes" ? "Daam bhejiye" : "Mana kijiye"}
+        {pending ? "Sending…" : available === "yes" ? "Send price" : "Turn down job"}
       </Button>
     </form>
   );

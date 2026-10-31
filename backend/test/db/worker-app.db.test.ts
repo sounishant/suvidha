@@ -87,6 +87,12 @@ describe("worker app", () => {
     expect((await services.workerHome(nishant)).invites[0]).toMatchObject({ state: "sent", myQuote: { price: 350 } });
   });
 
+  it("words the app's reasons in English though the customer called in Hindi", async () => {
+    const asha = await login(CUSTOMER, "customer");
+    const [quote] = (await services.customerJob(asha, "WJOB"))!.quotes;
+    expect(quote).toMatchObject({ ref: "WQ0", reason: expect.stringMatching(/^Earliest arrival: (today|tomorrow) /) });
+  });
+
   it("walks a booking through trip, start code, done and finish code", async () => {
     const asha = await login(CUSTOMER, "customer");
     const { payUrl } = (await services.bookForCustomer(asha, "WJOB", "WQ0")) as { payUrl: string };

@@ -14,7 +14,7 @@ export default function WorkerLayout({ children }: LayoutProps<"/worker">) {
           <TabBar variant="top" area="worker" />
           <a href={CALL.tel} className={cn(buttonVariants({ variant: "secondary" }), "h-11 rounded-xl px-4 text-base")}>
             <Phone className="size-4" aria-hidden="true" />
-            Madad
+            Help
           </a>
         </div>
       </header>

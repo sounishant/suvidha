@@ -4,9 +4,11 @@ import { chooseQuote } from "./bookings.ts";
 import type { Ctx } from "./context.ts";
 import { bookingFee } from "./fees.ts";
 import { jobLabel, whenText, type JobStatus } from "./jobs.ts";
+import { quoteReasons } from "./quotes.ts";
+import type { RankedQuote } from "./ranking.ts";
 
-// The web app speaks Hinglish, which is what the "hi" copy file holds for job labels and times.
-const APP_LANG = "hi";
+// The web app is in English whatever language the customer called in.
+const APP_LANG = "en";
 
 type JobListRow = {
   ref: string;
@@ -58,6 +60,7 @@ export async function customerJobs(ctx: Ctx, session: Session) {
 const shownRating = (rating: string | null, count: number) => (count >= 3 && rating ? Number(rating) : null);
 
 type QuoteRow = {
+  id: string;
   ref: string;
   worker_name: string;
   rating: string | null;
@@ -71,7 +74,6 @@ type QuoteRow = {
   distance_km: number | null;
   rank: number;
   rank_group: "ranked" | "visit" | "later" | null;
-  rank_reason: string | null;
   note: string | null;
 };
 
@@ -93,9 +95,9 @@ type BookingRow = {
 
 // Only the customer's own job; a ref from someone else's job reads as not found.
 export async function customerJob(ctx: Ctx, session: Session, ref: string) {
-  const [job] = await ctx.sql<(JobListRow & { id: string; material: string | null; address: string | null; safety_note: string | null; budget_inr: number | null })[]>`
+  const [job] = await ctx.sql<(JobListRow & { id: string; material: string | null; address: string | null; safety_note: string | null; budget_inr: number | null; ranking: RankedQuote[] | null })[]>`
     select j.id, j.ref, j.status, j.trade, j.job_type, j.job_type_other, j.problem, j.locality, j.address, j.material,
-           j.safety_note, j.budget_inr, j.time_window_text, j.window_end, j.created_at, j.price_inr,
+           j.safety_note, j.budget_inr, j.time_window_text, j.window_end, j.created_at, j.price_inr, j.ranking,
            w.name as worker_name, b.eta_at, b.final_price_inr
     from jobs j
     left join bookings b on b.job_id = j.id
@@ -105,8 +107,8 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
   const now = ctx.now();
 
   const quotes = await ctx.sql<QuoteRow[]>`
-    select q.ref, w.name as worker_name, w.rating, w.rating_count, w.verified, q.price_type, q.price,
-           q.visit_charge, q.material_included, q.earliest_arrival, q.distance_km, q.rank, q.rank_group, q.rank_reason, q.note
+    select q.id, q.ref, w.name as worker_name, w.rating, w.rating_count, w.verified, q.price_type, q.price,
+           q.visit_charge, q.material_included, q.earliest_arrival, q.distance_km, q.rank, q.rank_group, q.note
     from quotes q join workers w on w.id = q.worker_id
     where q.job_id = ${job.id} and q.rank is not null
     order by q.rank`;
@@ -115,6 +117,10 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
     select w.name as worker_name, w.rating, w.rating_count, w.verified, b.eta_at, b.start_otp, b.completion_otp, b.trip_started_at,
            b.started_at, b.done_at, b.closed_at, b.fixed, b.final_price_inr
     from bookings b join workers w on w.id = b.worker_id where b.job_id = ${job.id}`;
+
+  const reasons = quoteReasons(APP_LANG, job.ranking ?? [], quotes.map((q) => ({
+    id: q.id, price: q.price, rating: q.rating === null ? null : Number(q.rating), rated_jobs: q.rating_count, earliest_arrival: q.earliest_arrival,
+  })), now);
 
   const [payment] = await ctx.sql<{ amount_inr: number; link: string | null }[]>`
     select amount_inr, link from payments where job_id = ${job.id} and status = 'pending' and expires_at > ${now}`;
@@ -139,7 +145,7 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
       arrives: q.earliest_arrival ? whenLabel(APP_LANG, q.earliest_arrival, now) : null,
       distanceKm: q.distance_km,
       group: q.rank_group,
-      reason: q.rank_reason,
+      reason: reasons.get(q.id) ?? null,
       note: q.note,
     })),
     payment: payment?.link ? { amount: payment.amount_inr, url: payment.link } : null,

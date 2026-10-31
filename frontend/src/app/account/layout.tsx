@@ -14,7 +14,7 @@ export default function AccountLayout({ children }: LayoutProps<"/account">) {
           <TabBar variant="top" />
           <a href={CALL.tel} className={cn(buttonVariants(), "h-11 rounded-xl px-4 text-base")}>
             <Phone className="size-4" aria-hidden="true" />
-            Call kijiye
+            Call us
           </a>
         </div>
       </header>

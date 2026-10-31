@@ -5,12 +5,12 @@ const WHATSAPP_NUMBER = "910000000000";
 export const whatsappLink = (text: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 
 export const SERVICES = [
-  { slug: "plumber", name: "Plumber", hint: "Nal, pipe, tanki, geyser", ask: "mujhe plumber chahiye" },
-  { slug: "electrician", name: "Electrician", hint: "Pankha, switch, MCB, wiring", ask: "mujhe electrician chahiye" },
-  { slug: "carpenter", name: "Carpenter", hint: "Darwaza, almari, bed, tala", ask: "mujhe carpenter chahiye" },
-  { slug: "painter", name: "Painter", hint: "Kamra, seelan, putty", ask: "mujhe painter chahiye" },
-  { slug: "ac", name: "AC mechanic", hint: "AC, cooler, washing machine", ask: "mujhe AC mechanic chahiye" },
-  { slug: "mason", name: "Raajmistri", hint: "Tile, plaster, chhoti deewar", ask: "mujhe raajmistri chahiye" },
+  { slug: "plumber", name: "Plumber", hint: "Taps, pipes, tanks, geysers", ask: "I need a plumber" },
+  { slug: "electrician", name: "Electrician", hint: "Fans, switches, MCB, wiring", ask: "I need an electrician" },
+  { slug: "carpenter", name: "Carpenter", hint: "Doors, wardrobes, beds, locks", ask: "I need a carpenter" },
+  { slug: "painter", name: "Painter", hint: "Rooms, damp walls, putty", ask: "I need a painter" },
+  { slug: "ac", name: "AC mechanic", hint: "AC, cooler, washing machine", ask: "I need an AC mechanic" },
+  { slug: "mason", name: "Mason", hint: "Tiles, plaster, small walls", ask: "I need a mason" },
 ] as const;
 
 export type ServiceSlug = (typeof SERVICES)[number]["slug"];

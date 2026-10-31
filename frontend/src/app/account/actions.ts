@@ -30,11 +30,11 @@ export type NameState = { error: string | null; saved: boolean };
 // `next` is where to go after saving: the dashboard after signup, or stay on the profile page.
 export async function saveName(next: "/account" | null, _prev: NameState, form: FormData): Promise<NameState> {
   const name = String(form.get("name") ?? "").trim().replace(/\s+/g, " ");
-  if (!name) return { error: "Apna naam likhiye.", saved: false };
-  if (name.length > 60) return { error: "Naam 60 akshar se chhota rakhiye.", saved: false };
+  if (!name) return { error: "Please enter your name.", saved: false };
+  if (name.length > 60) return { error: "Keep your name under 60 letters.", saved: false };
   const { token } = await requireCustomer();
   const { data } = await backend<{ ok: boolean }>("/customer/profile", { method: "POST", token, body: { name } });
-  if (!data.ok) return { error: "Naam save nahi hua. Thodi der baad phir koshish kijiye.", saved: false };
+  if (!data.ok) return { error: "Couldn't save your name. Please try again in a little while.", saved: false };
   revalidatePath("/account", "layout");
   if (next) redirect(next);
   return { error: null, saved: true };
