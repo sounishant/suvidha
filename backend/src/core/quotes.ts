@@ -159,7 +159,7 @@ export async function recordWorkerCall(
     const updated = await ctx.sql`
       update quotes set call_status = 'answered', next_action_at = null, quoted_at = coalesce(quoted_at, now()),
         available = ${q.available}, decline_reason = ${q.declineReason}, price_type = ${q.priceType},
-        price_min = ${q.priceMin}, price_max = ${q.priceMax}, visit_charge = ${q.visitCharge},
+        price = ${q.price}, visit_charge = ${q.visitCharge},
         material_included = ${q.materialIncluded}, earliest_arrival = ${q.earliestArrival},
         duration_mins = ${q.durationMins}, note = ${q.note}
       where id = ${quote.id} and quoted_at is null
@@ -199,8 +199,8 @@ export async function startDueInvites(ctx: Ctx) {
 
 type QuoteRow = {
   id: string; ref: string; worker_id: string; name: string; phone: string; language: string; rating: number | null;
-  rated_jobs: number; available: boolean | null; price_type: "fixed" | "range" | "visit_only" | null;
-  price_min: number | null; price_max: number | null; visit_charge: number | null;
+  rated_jobs: number; available: boolean | null; price_type: "fixed" | "visit_only" | null;
+  price: number | null; visit_charge: number | null;
   material_included: "yes" | "no" | "partly" | null; earliest_arrival: Date | null; distance_km: number | null; quoted_at: Date | null;
 };
 
@@ -208,13 +208,13 @@ async function finish(ctx: Ctx, jobId: string) {
   const job = await jobById(ctx.sql, jobId);
   const quotes = await ctx.sql<QuoteRow[]>`
     select q.id, q.ref, q.worker_id, w.name, w.phone, w.language, w.rating::float as rating, w.rating_count as rated_jobs,
-           q.available, q.price_type, q.price_min, q.price_max, q.visit_charge, q.material_included,
+           q.available, q.price_type, q.price, q.visit_charge, q.material_included,
            q.earliest_arrival, q.distance_km, q.quoted_at
     from quotes q join workers w on w.id = q.worker_id
     where q.job_id = ${jobId} and q.quoted_at is not null`;
   const ranked = rankQuotes(
     quotes.map((q) => ({
-      id: q.id, available: q.available, priceType: q.price_type, priceMin: q.price_min, priceMax: q.price_max,
+      id: q.id, available: q.available, priceType: q.price_type, price: q.price,
       earliestArrival: q.earliest_arrival, rating: q.rating, ratedJobs: q.rated_jobs, distanceKm: q.distance_km,
       quotedAt: q.quoted_at!, materialIncluded: q.material_included,
     })),
@@ -243,10 +243,6 @@ async function finish(ctx: Ctx, jobId: string) {
   await recordSent(ctx, job, "shortlist", id);
 }
 
-function quotePrice(lang: string, q: Pick<QuoteRow, "price_min" | "price_max">) {
-  return priceLabel(lang, q.price_min ?? q.price_max!, q.price_max ?? q.price_min!);
-}
-
 function ratingText(lang: string, q: Pick<QuoteRow, "rating" | "rated_jobs">) {
   return q.rated_jobs >= 3 && q.rating !== null ? q.rating.toFixed(1) : whatsappText(lang, "rating_new");
 }
@@ -260,7 +256,7 @@ function reasonFor(lang: string, r: RankedQuote, ranked: RankedQuote[], byId: Ma
   const when = q.earliest_arrival ? whenLabel(lang, q.earliest_arrival, now) : whatsappText(lang, "none");
   const text =
     lead === "speed" ? whatsappText(lang, best ? "reason_speed_best" : "reason_speed", { when })
-    : lead === "price" ? whatsappText(lang, best ? "reason_price_best" : "reason_price", { price: quotePrice(lang, q) })
+    : lead === "price" ? whatsappText(lang, best ? "reason_price_best" : "reason_price", { price: priceLabel(lang, q.price!) })
     : whatsappText(lang, best ? "reason_quality_best" : "reason_quality", { rating: ratingText(lang, q) });
   const soonest = Math.min(...ranked.filter((x) => x.group === "ranked").map((x) => byId.get(x.id)!.earliest_arrival?.getTime() ?? Infinity));
   const laterDay = lead !== "speed" && q.earliest_arrival && q.earliest_arrival.getTime() > soonest
@@ -280,7 +276,7 @@ function shortlist(job: JobRow, ranked: RankedQuote[], byId: Map<string, QuoteRo
   const lines = [t("shortlist_intro", { job: jobLabel(job) }), ""];
   for (const r of inGroup("ranked")) {
     const q = byId.get(r.id)!;
-    lines.push(t("shortlist_line", { n: r.rank, name: q.name, price: quotePrice(lang, q), when: when(q), rating: ratingText(lang, q), reason: reasons.get(r.id) ?? "", labels: labels(r) }));
+    lines.push(t("shortlist_line", { n: r.rank, name: q.name, price: priceLabel(lang, q.price!), when: when(q), rating: ratingText(lang, q), reason: reasons.get(r.id) ?? "", labels: labels(r) }));
   }
   if (inGroup("visit").length) {
     lines.push("", t("shortlist_visit_title"));
@@ -295,7 +291,7 @@ function shortlist(job: JobRow, ranked: RankedQuote[], byId: Map<string, QuoteRo
 
   const row = (r: RankedQuote) => {
     const q = byId.get(r.id)!;
-    const price = q.price_type === "visit_only" ? (q.visit_charge ? t("visit_charge", { price: q.visit_charge }).replace(/^ · /, "") : "") : quotePrice(lang, q);
+    const price = q.price_type === "visit_only" ? (q.visit_charge ? t("visit_charge", { price: q.visit_charge }).replace(/^ · /, "") : "") : priceLabel(lang, q.price!);
     return {
       id: `book:${q.ref}`,
       title: cut(`${r.rank}. ${q.name}`, 24),
@@ -314,8 +310,8 @@ const otp = () => String(randomInt(0, 10_000)).padStart(4, "0");
 // The customer taps a worker on the shortlist; only a job still showing its quotes can be booked, once.
 export async function bookQuote(ctx: Ctx, phone: string, quoteRef: string) {
   const booked = await ctx.sql.begin(async (tx) => {
-    const [row] = await tx<{ quote_id: string; job_id: string; worker_id: string; earliest_arrival: Date | null; price_min: number | null }[]>`
-      select q.id as quote_id, q.job_id, q.worker_id, q.earliest_arrival, q.price_min
+    const [row] = await tx<{ quote_id: string; job_id: string; worker_id: string; earliest_arrival: Date | null; price: number | null }[]>`
+      select q.id as quote_id, q.job_id, q.worker_id, q.earliest_arrival, q.price
       from quotes q join jobs j on j.id = q.job_id join customers c on c.id = j.customer_id
       where q.ref = ${quoteRef} and c.phone = ${phone} and q.rank is not null
       for update of j`;
@@ -323,19 +319,19 @@ export async function bookQuote(ctx: Ctx, phone: string, quoteRef: string) {
     await tx`
       insert into bookings (job_id, worker_id, quote_id, start_otp, completion_otp, eta_at)
       values (${row.job_id}, ${row.worker_id}, ${row.quote_id}, ${otp()}, ${otp()}, ${row.earliest_arrival})`;
-    await tx`update jobs set price_inr = ${row.price_min} where id = ${row.job_id}`;
+    await tx`update jobs set price_inr = ${row.price} where id = ${row.job_id}`;
     await logEvent(tx, row.job_id, "booking_made", "customer", { worker_id: row.worker_id, quote: quoteRef });
     return row;
   });
   if (!booked) return false;
 
   const job = await jobById(ctx.sql, booked.job_id);
-  const [b] = await ctx.sql<{ start_otp: string; name: string; phone: string; language: string; price_min: number | null; price_max: number | null; earliest_arrival: Date | null }[]>`
-    select b.start_otp, w.name, w.phone, w.language, q.price_min, q.price_max, q.earliest_arrival
+  const [b] = await ctx.sql<{ start_otp: string; name: string; phone: string; language: string; price: number | null; earliest_arrival: Date | null }[]>`
+    select b.start_otp, w.name, w.phone, w.language, q.price, q.earliest_arrival
     from bookings b join workers w on w.id = b.worker_id join quotes q on q.id = b.quote_id where b.job_id = ${job.id}`;
   const now = ctx.now();
   const lang = job.language;
-  const price = b!.price_min === null ? whatsappText(lang, "none") : quotePrice(lang, b!);
+  const price = b!.price === null ? whatsappText(lang, "none") : priceLabel(lang, b!.price);
   const when = b!.earliest_arrival ? whenLabel(lang, b!.earliest_arrival, now) : whenText(job, now);
   const id = await ctx.whatsapp.sendText(toWhatsApp(job.phone), whatsappText(lang, "booked_customer", { name: b!.name, when, price, otp: b!.start_otp }));
   await recordSent(ctx, job, "booking", id);

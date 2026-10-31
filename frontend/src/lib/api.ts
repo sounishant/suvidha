@@ -21,9 +21,8 @@ export type Quote = {
   worker: string;
   rating: number | null;
   verified: boolean;
-  priceType: "fixed" | "range" | "visit_only" | null;
-  priceMin: number | null;
-  priceMax: number | null;
+  priceType: "fixed" | "visit_only" | null;
+  price: number | null;
   visitCharge: number | null;
   materialIncluded: "yes" | "no" | "partly" | null;
   arrives: string | null;
@@ -73,7 +72,7 @@ export async function backend<T>(path: string, { token, method = "GET", body }: 
 }
 
 // Shapes of /worker/home (backend/src/core/worker-app.ts).
-export type PriceType = "fixed" | "range" | "visit_only";
+export type PriceType = "fixed" | "visit_only";
 
 export type Invite = {
   quoteRef: string;
@@ -87,7 +86,7 @@ export type Invite = {
   when: string;
   distanceKm: number | null;
   state: "open" | "sent" | "closed";
-  myQuote: { available: boolean | null; priceType: PriceType | null; priceMin: number | null; priceMax: number | null; visitCharge: number | null; arrives: string | null } | null;
+  myQuote: { available: boolean | null; priceType: PriceType | null; price: number | null; visitCharge: number | null; arrives: string | null } | null;
 };
 
 export type ActiveJob = {
@@ -102,7 +101,6 @@ export type ActiveJob = {
   eta: string | null;
   stage: "booked" | "on_the_way" | "working" | "done";
   price: number | null;
-  priceMax: number | null;
 };
 
 export type WorkerHome = {

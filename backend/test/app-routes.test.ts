@@ -58,8 +58,8 @@ describe("web app routes", () => {
   });
 
   it("check a worker quote before saving it", async () => {
-    const quote = { available: true, priceType: "fixed", priceMin: 350, arrivalInMinutes: 60 };
-    expect((await call("POST", "/worker/quotes/Q1", asWorker, { ...quote, priceMin: null })).status).toBe(400);
+    const quote = { available: true, priceType: "fixed", price: 350, arrivalInMinutes: 60 };
+    expect((await call("POST", "/worker/quotes/Q1", asWorker, { ...quote, price: null })).status).toBe(400);
     expect((await call("POST", "/worker/quotes/Q1", asWorker, { ...quote, arrivalInMinutes: null })).status).toBe(400);
     expect((await call("POST", "/worker/quotes/Q1", asWorker, { available: false, declineReason: "busy" })).status).toBe(200);
     expect((await call("POST", "/worker/quotes/Q1", asWorker, quote)).status).toBe(200);

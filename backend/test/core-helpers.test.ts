@@ -58,7 +58,7 @@ describe("messages", () => {
   });
 
   it("writes prices and times the way the shortlist shows them", () => {
-    expect([priceLabel("hi", 350, 350), priceLabel("en", 300, 400)]).toEqual(["₹350", "₹300–400"]);
+    expect([priceLabel("hi", 350), priceLabel("en", 1200)]).toEqual(["₹350", "₹1200"]);
     const now = new Date("2026-10-27T10:00:00Z");
     expect(whenLabel("hi", new Date("2026-10-27T12:00:00Z"), now)).toBe("aaj 5:30 pm");
     expect(whenLabel("en", new Date("2026-10-28T04:30:00Z"), now)).toBe("tomorrow 10 am");

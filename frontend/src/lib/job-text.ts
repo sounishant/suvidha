@@ -31,10 +31,9 @@ export const TRADE: Record<string, string> = {
 
 const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-export function quotePrice(q: Pick<Quote, "priceType" | "priceMin" | "priceMax" | "visitCharge">) {
+export function quotePrice(q: Pick<Quote, "priceType" | "price" | "visitCharge">) {
   if (q.priceType === "visit_only") return q.visitCharge ? `Dekh ke batayenge · visit ${rupees(q.visitCharge)}` : "Dekh ke batayenge";
-  if (q.priceType === "range" && q.priceMin !== null && q.priceMax !== null) return `${rupees(q.priceMin)}–${rupees(q.priceMax)}`;
-  return q.priceMin !== null ? rupees(q.priceMin) : "—";
+  return q.price !== null ? rupees(q.price) : "—";
 }
 
 export const MATERIAL: Record<string, string> = {

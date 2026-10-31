@@ -62,9 +62,8 @@ type QuoteRow = {
   rating: string | null;
   rating_count: number;
   verified: boolean;
-  price_type: "fixed" | "range" | "visit_only" | null;
-  price_min: number | null;
-  price_max: number | null;
+  price_type: "fixed" | "visit_only" | null;
+  price: number | null;
   visit_charge: number | null;
   material_included: "yes" | "no" | "partly" | null;
   earliest_arrival: Date | null;
@@ -105,7 +104,7 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
   const now = ctx.now();
 
   const quotes = await ctx.sql<QuoteRow[]>`
-    select q.ref, w.name as worker_name, w.rating, w.rating_count, w.verified, q.price_type, q.price_min, q.price_max,
+    select q.ref, w.name as worker_name, w.rating, w.rating_count, w.verified, q.price_type, q.price,
            q.visit_charge, q.material_included, q.earliest_arrival, q.distance_km, q.rank, q.rank_group, q.rank_reason, q.note
     from quotes q join workers w on w.id = q.worker_id
     where q.job_id = ${job.id} and q.rank is not null
@@ -129,8 +128,7 @@ export async function customerJob(ctx: Ctx, session: Session, ref: string) {
       rating: shownRating(q.rating, q.rating_count),
       verified: q.verified,
       priceType: q.price_type,
-      priceMin: q.price_min,
-      priceMax: q.price_max,
+      price: q.price,
       visitCharge: q.visit_charge,
       materialIncluded: q.material_included,
       arrives: q.earliest_arrival ? whenLabel(APP_LANG, q.earliest_arrival, now) : null,

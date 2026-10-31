@@ -28,8 +28,7 @@ type InviteRow = {
   quoted_at: Date | null;
   available: boolean | null;
   price_type: WorkerQuote["priceType"];
-  price_min: number | null;
-  price_max: number | null;
+  price: number | null;
   visit_charge: number | null;
   earliest_arrival: Date | null;
   booked_worker: string | null;
@@ -52,8 +51,7 @@ type ActiveRow = {
   trip_started_at: Date | null;
   started_at: Date | null;
   done_at: Date | null;
-  price_min: number | null;
-  price_max: number | null;
+  price: number | null;
   final_price_inr: number | null;
 };
 
@@ -66,7 +64,7 @@ export async function workerHome(ctx: Ctx, session: Session) {
   const quotes = await ctx.sql<InviteRow[]>`
     select q.ref, j.ref as job_ref, j.status, j.trade, j.job_type, j.job_type_other, j.problem, j.locality, j.material,
            j.safety_note, j.time_window_text, j.window_end, q.distance_km, q.quoted_at, q.available, q.price_type,
-           q.price_min, q.price_max, q.visit_charge, q.earliest_arrival, b.worker_id as booked_worker
+           q.price, q.visit_charge, q.earliest_arrival, b.worker_id as booked_worker
     from quotes q join jobs j on j.id = q.job_id left join bookings b on b.job_id = j.id
     where q.worker_id = ${session.workerId} and j.status in ('inviting', 'quotes_in', 'booked')
       and (b.worker_id is null or b.worker_id <> ${session.workerId})
@@ -75,7 +73,7 @@ export async function workerHome(ctx: Ctx, session: Session) {
   const active = await ctx.sql<ActiveRow[]>`
     select j.ref as job_ref, j.trade, j.job_type, j.job_type_other, j.problem, j.address, j.locality, j.site_contact,
            j.safety_note, c.name as customer_name, j.time_window_text, j.window_end, b.eta_at, b.trip_started_at,
-           b.started_at, b.done_at, q.price_min, q.price_max, b.final_price_inr
+           b.started_at, b.done_at, q.price, b.final_price_inr
     from bookings b join jobs j on j.id = b.job_id join customers c on c.id = j.customer_id left join quotes q on q.id = b.quote_id
     where b.worker_id = ${session.workerId} and b.closed_at is null and j.status = 'booked'
     order by b.confirmed_at`;
@@ -114,7 +112,7 @@ export async function workerHome(ctx: Ctx, session: Session) {
       // open: he can still quote; sent: waiting for the customer; closed: the job went elsewhere or ended.
       state: q.status === "inviting" && !q.quoted_at ? "open" : q.quoted_at && q.status !== "booked" ? "sent" : "closed",
       myQuote: q.quoted_at
-        ? { available: q.available, priceType: q.price_type, priceMin: q.price_min, priceMax: q.price_max, visitCharge: q.visit_charge, arrives: q.earliest_arrival ? whenLabel(APP_LANG, q.earliest_arrival, now) : null }
+        ? { available: q.available, priceType: q.price_type, price: q.price, visitCharge: q.visit_charge, arrives: q.earliest_arrival ? whenLabel(APP_LANG, q.earliest_arrival, now) : null }
         : null,
     })),
     active: active.map((a) => ({
@@ -128,8 +126,7 @@ export async function workerHome(ctx: Ctx, session: Session) {
       when: whenText({ ...a, language: APP_LANG }, now),
       eta: a.eta_at ? whenLabel(APP_LANG, a.eta_at, now) : null,
       stage: a.done_at ? "done" : a.started_at ? "working" : a.trip_started_at ? "on_the_way" : "booked",
-      price: a.final_price_inr ?? a.price_min,
-      priceMax: a.price_max,
+      price: a.final_price_inr ?? a.price,
     })),
     earnings: { jobs: earned!.jobs, total: earned!.total, monthJobs: earned!.month_jobs, monthTotal: earned!.month_total },
     recent: recent.map((r) => ({ jobRef: r.job_ref, trade: r.trade, title: title(r), locality: r.locality, closedAt: r.closed_at.toISOString(), price: r.final_price_inr })),
@@ -144,8 +141,7 @@ export type AppQuote = {
   available: boolean;
   declineReason: WorkerQuote["declineReason"];
   priceType: WorkerQuote["priceType"];
-  priceMin: number | null;
-  priceMax: number | null;
+  price: number | null;
   visitCharge: number | null;
   materialIncluded: WorkerQuote["materialIncluded"];
   arrivalInMinutes: number | null;
@@ -166,8 +162,7 @@ export async function quoteFromApp(ctx: Ctx, session: Session, quoteRef: string,
       available: q.available,
       declineReason: q.available ? null : (q.declineReason ?? "other"),
       priceType: q.available ? q.priceType : null,
-      priceMin: q.available && q.priceType !== "visit_only" ? q.priceMin : null,
-      priceMax: q.available && q.priceType !== "visit_only" ? (q.priceType === "range" ? q.priceMax : q.priceMin) : null,
+      price: q.available && q.priceType === "fixed" ? q.price : null,
       visitCharge: q.available && q.priceType === "visit_only" ? q.visitCharge : null,
       materialIncluded: q.available ? q.materialIncluded : null,
       earliestArrival: arrival,
@@ -198,12 +193,12 @@ async function myBooking(sql: Sql | TransactionSql, session: Session, jobRef: st
   const rows = lock
     ? await sql<BookingForWorker[]>`
         select b.id, b.job_id, b.start_otp, b.completion_otp, b.code_attempts, b.trip_started_at, b.started_at, b.done_at, b.closed_at,
-               q.price_min as quote_price, w.name as worker_name
+               q.price as quote_price, w.name as worker_name
         from bookings b join jobs j on j.id = b.job_id join workers w on w.id = b.worker_id left join quotes q on q.id = b.quote_id
         where j.ref = ${jobRef} and b.worker_id = ${session.workerId} for update of b`
     : await sql<BookingForWorker[]>`
         select b.id, b.job_id, b.start_otp, b.completion_otp, b.code_attempts, b.trip_started_at, b.started_at, b.done_at, b.closed_at,
-               q.price_min as quote_price, w.name as worker_name
+               q.price as quote_price, w.name as worker_name
         from bookings b join jobs j on j.id = b.job_id join workers w on w.id = b.worker_id left join quotes q on q.id = b.quote_id
         where j.ref = ${jobRef} and b.worker_id = ${session.workerId}`;
   return rows[0] ?? null;

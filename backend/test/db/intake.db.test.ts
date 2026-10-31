@@ -215,7 +215,7 @@ describe("a complete intake call", () => {
     await unanswered(jobId, "+919000000101");
     await quoteCall(jobId, "+919000000102", { available: "no", decline_reason: "bahut door hai" });
     expect(await callsFor(jobId)).toHaveLength(5);
-    await quoteCall(jobId, "+919000000103", { available: "yes", price_min: "300", price_max: "400", material_included: "no", earliest_arrival: "2026-10-27T18:00" });
+    await quoteCall(jobId, "+919000000103", { available: "yes", price: "380", material_included: "no", earliest_arrival: "2026-10-27T18:00" });
     expect((await job(jobId)).status).toBe("inviting");
     await quoteCall(jobId, "+919000000104", { available: "yes", price_type: "only after visit", visit_charge: "100", earliest_arrival: "2026-10-27T19:00" });
 
@@ -275,7 +275,7 @@ describe("the shortlist message", () => {
     const j = await intakeCall("+919100000007");
     await tick(inSeconds(61));
     await quoteCall(j.id, SANSKAR, { available: "yes", price: "350", material_included: "yes", earliest_arrival: "2026-10-27T17:30" });
-    await quoteCall(j.id, "+919000000101", { available: "yes", price_min: "300", price_max: "400", material_included: "no", earliest_arrival: "2026-10-27T18:00" });
+    await quoteCall(j.id, "+919000000101", { available: "yes", price: "380", material_included: "no", earliest_arrival: "2026-10-27T18:00" });
     await quoteCall(j.id, "+919000000102", { available: "yes", price_type: "only after visit", visit_charge: "100" });
 
     expect((await job(j.id)).status).toBe("quotes_in");
@@ -288,7 +288,7 @@ describe("the shortlist message", () => {
     ]);
     expect(shortlist.list!.sections[0]!.rows[0]!.id).toMatch(/^book:[A-Z2-9]{4}$/);
     expect(shortlist.text).toContain("₹350");
-    expect(shortlist.text).toContain("₹300–400");
+    expect(shortlist.text).toContain("₹380");
     expect(shortlist.text).toContain("saaman alag se");
     expect(shortlist.text).toContain("Visit charge ₹100");
     expect(shortlist.text).toContain("Photo nahi mili");

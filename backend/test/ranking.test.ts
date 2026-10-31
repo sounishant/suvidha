@@ -3,14 +3,14 @@ import { rankQuotes, weightsFor, type QuoteForRanking, type RankRequest } from "
 
 const at = (iso: string) => new Date(`${iso}+05:30`);
 const quote = (q: Partial<QuoteForRanking> & { id: string }): QuoteForRanking => ({
-  available: true, priceType: "fixed", priceMin: null, priceMax: null, earliestArrival: null, rating: 4.5,
+  available: true, priceType: "fixed", price: null, earliestArrival: null, rating: 4.5,
   ratedJobs: 10, distanceKm: 1, quotedAt: at("2026-10-27T18:10"), materialIncluded: "yes", ...q,
 });
 
 // The worked example in the job card spec.
-const w014 = quote({ id: "W-014", priceMin: 350, priceMax: 350, earliestArrival: at("2026-10-27T17:30"), rating: 4.6, distanceKm: 1.2 });
-const w022 = quote({ id: "W-022", priceMin: 400, priceMax: 400, earliestArrival: at("2026-10-27T18:00"), rating: 4.2, distanceKm: 2.5 });
-const w031 = quote({ id: "W-031", priceMin: 300, priceMax: 300, earliestArrival: at("2026-10-28T10:00"), rating: 4.8, distanceKm: 3.1 });
+const w014 = quote({ id: "W-014", price: 350, earliestArrival: at("2026-10-27T17:30"), rating: 4.6, distanceKm: 1.2 });
+const w022 = quote({ id: "W-022", price: 400, earliestArrival: at("2026-10-27T18:00"), rating: 4.2, distanceKm: 2.5 });
+const w031 = quote({ id: "W-031", price: 300, earliestArrival: at("2026-10-28T10:00"), rating: 4.8, distanceKm: 3.1 });
 const req = (r: Partial<RankRequest> = {}): RankRequest => ({
   priorities: ["speed", "price", "quality"], budgetInr: null, windowEnd: at("2026-10-28T12:00"), customerExpectsMaterial: false, ...r,
 });
@@ -44,7 +44,7 @@ describe("rankQuotes", () => {
   });
 
   it("breaks an exact tie on distance by whoever quoted first", () => {
-    const a = quote({ id: "A", priceMin: 300, priceMax: 300, earliestArrival: at("2026-10-27T17:00"), quotedAt: at("2026-10-27T18:12") });
+    const a = quote({ id: "A", price: 300, earliestArrival: at("2026-10-27T17:00"), quotedAt: at("2026-10-27T18:12") });
     const b = { ...a, id: "B", quotedAt: at("2026-10-27T18:11") };
     expect(rankQuotes([a, b], req()).map((r) => r.id)).toEqual(["B", "A"]);
   });
@@ -53,14 +53,8 @@ describe("rankQuotes", () => {
     expect(rankQuotes([w014], req())[0]).toMatchObject({ score: expect.closeTo(1, 9), measures: { speed: 1, price: 1, quality: 1 } });
   });
 
-  it("uses the middle of a price range", () => {
-    const range = quote({ id: "R", priceType: "range", priceMin: 250, priceMax: 350, earliestArrival: at("2026-10-27T17:30") });
-    const fixed = quote({ id: "F", priceMin: 320, priceMax: 320, earliestArrival: at("2026-10-27T17:30") });
-    expect(rankQuotes([range, fixed], req({ priorities: ["price"] }))[0]!.id).toBe("R");
-  });
-
   it("gives workers with fewer than 3 rated jobs a quality of 0.5", () => {
-    const fresh = quote({ id: "N", priceMin: 300, priceMax: 300, earliestArrival: at("2026-10-27T17:30"), rating: 5, ratedJobs: 1 });
+    const fresh = quote({ id: "N", price: 300, earliestArrival: at("2026-10-27T17:30"), rating: 5, ratedJobs: 1 });
     expect(rankQuotes([w014, fresh], req()).find((r) => r.id === "N")!.measures!.quality).toBe(0.5);
   });
 
@@ -74,7 +68,7 @@ describe("rankQuotes", () => {
 
   it("lists visit-only quotes below the ranked ones and late arrivals last; hides declines", () => {
     const visit = quote({ id: "V", priceType: "visit_only" });
-    const late = quote({ id: "L", priceMin: 200, priceMax: 200, earliestArrival: at("2026-10-29T09:00") });
+    const late = quote({ id: "L", price: 200, earliestArrival: at("2026-10-29T09:00") });
     const declined = quote({ id: "D", available: false, priceType: null });
     const ranked = rankQuotes([late, visit, declined, w014], req());
     expect(ranked.map((r) => [r.id, r.group, r.rank])).toEqual([["W-014", "ranked", 1], ["V", "visit", 2], ["L", "later", 3]]);

@@ -4,9 +4,8 @@ export const PRIORITIES: Priority[] = ["speed", "price", "quality"];
 export type QuoteForRanking = {
   id: string;
   available: boolean | null;
-  priceType: "fixed" | "range" | "visit_only" | null;
-  priceMin: number | null;
-  priceMax: number | null;
+  priceType: "fixed" | "visit_only" | null;
+  price: number | null;
   earliestArrival: Date | null;
   rating: number | null;
   ratedJobs: number;
@@ -49,12 +48,6 @@ export function weightsFor(priorities: Priority[]): Record<Priority, number> {
   return { [full[0]!]: 0.6, [full[1]!]: 0.3, [full[2]!]: 0.1 } as Record<Priority, number>;
 }
 
-export function priceOf(q: Pick<QuoteForRanking, "priceMin" | "priceMax">) {
-  const min = q.priceMin ?? q.priceMax!;
-  const max = q.priceMax ?? q.priceMin!;
-  return (min + max) / 2;
-}
-
 // Best on this job's quotes gets 1, worst 0; a single quote, or all equal, gets 1.
 function scale(values: number[], higherIsBetter: boolean) {
   const lo = Math.min(...values);
@@ -72,12 +65,12 @@ export function rankQuotes(quotes: QuoteForRanking[], req: RankRequest): RankedQ
   const weights = weightsFor(req.priorities);
   const farFuture = Number.MAX_SAFE_INTEGER;
   const speed = scale(inWindow.map((q) => -(q.earliestArrival?.getTime() ?? farFuture)), true);
-  const price = scale(inWindow.map(priceOf), false);
+  const price = scale(inWindow.map((q) => q.price!), false);
   const established = inWindow.filter((q) => q.ratedJobs >= MIN_RATED_JOBS);
   const qualityScaled = scale(established.length ? established.map((q) => q.rating ?? 0) : [0], true);
 
   const labelsFor = (q: QuoteForRanking): RankedQuote["labels"] => [
-    ...(req.budgetInr !== null && q.priceType !== "visit_only" && priceOf(q) > req.budgetInr ? (["above_budget"] as const) : []),
+    ...(req.budgetInr !== null && q.priceType === "fixed" && q.price! > req.budgetInr ? (["above_budget"] as const) : []),
     ...(req.customerExpectsMaterial && (q.materialIncluded === "no" || q.materialIncluded === "partly") ? (["material_extra"] as const) : []),
   ];
 

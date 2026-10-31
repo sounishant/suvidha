@@ -38,8 +38,8 @@ export function placeText(lang: string | null | undefined, locality: string, lan
   return landmark ? say(lang, "place_near", { locality, landmark }) : locality;
 }
 
-export function priceLabel(lang: string | null | undefined, min: number, max: number) {
-  return min === max ? whatsappText(lang, "price_fixed", { price: min }) : whatsappText(lang, "price_range", { min, max });
+export function priceLabel(lang: string | null | undefined, price: number) {
+  return whatsappText(lang, "price_fixed", { price });
 }
 
 const IST = "Asia/Kolkata";

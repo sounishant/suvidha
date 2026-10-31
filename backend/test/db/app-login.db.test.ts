@@ -45,7 +45,7 @@ async function jobWithQuotes(customerPhone: string, ref: string) {
   const workers = await sql<{ id: string }[]>`select id from workers where phone in ${sql(WORKERS)} order by phone`;
   for (const [i, w] of workers.slice(0, 2).entries()) {
     await sql`
-      insert into quotes (ref, job_id, worker_id, call_order, call_status, available, price_type, price_min, earliest_arrival, rank, rank_group, quoted_at)
+      insert into quotes (ref, job_id, worker_id, call_order, call_status, available, price_type, price, earliest_arrival, rank, rank_group, quoted_at)
       values (${`${ref}Q${i}`}, ${j!.id}, ${w.id}, ${i + 1}, 'answered', true, 'fixed', ${350 + i * 50}, now() + interval '3 hours', ${i + 1}, 'ranked', now())`;
   }
 }
@@ -131,7 +131,7 @@ describe("web app login and customer data", () => {
 
     const job = (await services.customerJob(session, "AJOB"))!;
     expect(job.status).toBe("quotes_in");
-    expect(job.quotes.map((q) => [q.ref, q.priceMin])).toEqual([["AJOBQ0", 350], ["AJOBQ1", 400]]);
+    expect(job.quotes.map((q) => [q.ref, q.price])).toEqual([["AJOBQ0", 350], ["AJOBQ1", 400]]);
   });
 
   it("books one of its own quotes, never someone else's", async () => {

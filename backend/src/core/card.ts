@@ -214,9 +214,8 @@ export function missingFields(card: Pick<CustomerCard, "trade" | "jobType" | "pr
 export type WorkerQuote = {
   available: boolean | null;
   declineReason: "busy" | "too_far" | "not_my_skill" | "other" | null;
-  priceType: "fixed" | "range" | "visit_only" | null;
-  priceMin: number | null;
-  priceMax: number | null;
+  priceType: "fixed" | "visit_only" | null;
+  price: number | null;
   visitCharge: number | null;
   materialIncluded: "yes" | "no" | "partly" | null;
   earliestArrival: Date | null;
@@ -229,15 +228,9 @@ export function workerQuote(data: unknown, now: Date): WorkerQuote {
   const get = (...keys: string[]) => keys.map((k) => f.get(k)).find((v) => v !== undefined);
   const available = toYesNo(get("available"));
   const reason = get("decline_reason")?.toLowerCase() ?? "";
-  const single = toNumber(get("price"));
-  const priceMin = toNumber(get("price_min")) ?? single;
-  const priceMax = toNumber(get("price_max")) ?? single ?? priceMin;
-  // "Dekh kar bataunga, waise 300–400" is still a range the customer can compare; visit-only means no amount at all.
-  const priceType: WorkerQuote["priceType"] =
-    available !== true ? null
-    : priceMin === null ? "visit_only"
-    : priceMax !== null && priceMax !== priceMin ? "range"
-    : "fixed";
+  const price = toNumber(get("price"));
+  // Any amount the worker named is the price; only a worker who named none quotes a visit charge.
+  const priceType: WorkerQuote["priceType"] = available !== true ? null : price === null ? "visit_only" : "fixed";
   const material = get("material_included")?.toLowerCase();
   const inMinutes = toNumber(get("arrival_in_minutes"));
   const said = get("arrival_in_minutes") || get("arrival_day") || get("arrival_time");
@@ -253,9 +246,8 @@ export function workerQuote(data: unknown, now: Date): WorkerQuote {
       : has(reason, ["skill", "nahi aata", "mera kaam nahi"]) ? "not_my_skill"
       : "other",
     priceType,
-    priceMin: priceType === "fixed" || priceType === "range" ? priceMin : null,
-    priceMax: priceType === "fixed" || priceType === "range" ? priceMax : null,
-    visitCharge: toNumber(get("visit_charge")),
+    price: priceType === "fixed" ? price : null,
+    visitCharge: priceType === "visit_only" ? toNumber(get("visit_charge")) : null,
     materialIncluded: material ? (material.startsWith("y") || material.startsWith("haan") ? "yes" : material.startsWith("part") ? "partly" : "no") : null,
     earliestArrival: (said ? arrival : null) ?? plausible(toTimestamp(get("earliest_arrival")), now),
     durationMins: toNumber(get("duration_mins", "duration")),

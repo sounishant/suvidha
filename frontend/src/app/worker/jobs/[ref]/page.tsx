@@ -86,7 +86,7 @@ async function Job({ params }: Pick<PageProps<"/worker/jobs/[ref]">, "params">) 
             </li>
           )}
           {job.price !== null && (
-            <li className="text-muted-foreground">Aapka daam: <span className="font-medium text-foreground">{job.priceMax && job.priceMax > job.price ? `${rupees(job.price)}–${rupees(job.priceMax)}` : rupees(job.price)}</span></li>
+            <li className="text-muted-foreground">Aapka daam: <span className="font-medium text-foreground">{rupees(job.price)}</span></li>
           )}
         </ul>
         {maps && (

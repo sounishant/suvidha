@@ -32,8 +32,7 @@ export async function sendQuote(quoteRef: string, _prev: FormState, form: FormDa
     available,
     declineReason: available ? null : String(form.get("declineReason") ?? "other"),
     priceType,
-    priceMin: priceType === "visit_only" ? null : rupeesOf(form, "priceMin"),
-    priceMax: null,
+    price: priceType === "visit_only" ? null : rupeesOf(form, "price"),
     visitCharge: priceType === "visit_only" ? rupeesOf(form, "visitCharge") : null,
     materialIncluded: available ? (String(form.get("materialIncluded") ?? "") || null) : null,
     arrivalInMinutes: available ? Number(form.get("arrivalInMinutes") ?? NaN) : null,
@@ -42,7 +41,7 @@ export async function sendQuote(quoteRef: string, _prev: FormState, form: FormDa
 
   if (available) {
     if (!["fixed", "visit_only"].includes(quote.priceType ?? "")) return { error: "Daam kaisa hai, chuniye." };
-    if (quote.priceType !== "visit_only" && !quote.priceMin) return { error: "Apna daam rupaye mein likhiye." };
+    if (quote.priceType !== "visit_only" && !quote.price) return { error: "Apna daam rupaye mein likhiye." };
     if (!Number.isInteger(quote.arrivalInMinutes)) return { error: "Kab tak pahunchenge, chuniye." };
   }
 

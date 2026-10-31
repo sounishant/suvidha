@@ -74,16 +74,16 @@ describe("worker app", () => {
   });
 
   it("takes a quote and a decline from the app, then sends the customer the shortlist", async () => {
-    expect(await services.quoteFromApp(nishant, "WQ0", { available: true, declineReason: null, priceType: "fixed", priceMin: 350, priceMax: null, visitCharge: null, materialIncluded: "yes", arrivalInMinutes: 60, note: null })).toBe(true);
-    expect(await services.quoteFromApp(nishant, "WQ0", { available: false, declineReason: "busy", priceType: null, priceMin: null, priceMax: null, visitCharge: null, materialIncluded: null, arrivalInMinutes: null, note: null })).toBe(false);
+    expect(await services.quoteFromApp(nishant, "WQ0", { available: true, declineReason: null, priceType: "fixed", price: 350, visitCharge: null, materialIncluded: "yes", arrivalInMinutes: 60, note: null })).toBe(true);
+    expect(await services.quoteFromApp(nishant, "WQ0", { available: false, declineReason: "busy", priceType: null, price: null, visitCharge: null, materialIncluded: null, arrivalInMinutes: null, note: null })).toBe(false);
 
     const other = await login(WORKERS[1]!, "worker");
-    await services.quoteFromApp(other, "WQ1", { available: false, declineReason: "busy", priceType: null, priceMin: null, priceMax: null, visitCharge: null, materialIncluded: null, arrivalInMinutes: null, note: null });
+    await services.quoteFromApp(other, "WQ1", { available: false, declineReason: "busy", priceType: null, price: null, visitCharge: null, materialIncluded: null, arrivalInMinutes: null, note: null });
     await background.settle();
 
     const [job] = await sql<{ status: string }[]>`select status from jobs where ref = 'WJOB'`;
     expect(job!.status).toBe("quotes_in");
-    expect((await services.workerHome(nishant)).invites[0]).toMatchObject({ state: "sent", myQuote: { priceMin: 350 } });
+    expect((await services.workerHome(nishant)).invites[0]).toMatchObject({ state: "sent", myQuote: { price: 350 } });
   });
 
   it("walks a booking through trip, start code, done and finish code", async () => {

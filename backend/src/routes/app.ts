@@ -17,15 +17,14 @@ const Quote = z
   .object({
     available: z.boolean(),
     declineReason: z.enum(["busy", "too_far", "not_my_skill", "other"]).nullable().default(null),
-    priceType: z.enum(["fixed", "range", "visit_only"]).nullable().default(null),
-    priceMin: Rupees.nullable().default(null),
-    priceMax: Rupees.nullable().default(null),
+    priceType: z.enum(["fixed", "visit_only"]).nullable().default(null),
+    price: Rupees.nullable().default(null),
     visitCharge: Rupees.nullable().default(null),
     materialIncluded: z.enum(["yes", "no", "partly"]).nullable().default(null),
     arrivalInMinutes: z.number().int().min(0).max(7 * 24 * 60).nullable().default(null),
     note: z.string().trim().max(200).nullable().default(null),
   })
-  .refine((q) => !q.available || (q.priceType !== null && (q.priceType === "visit_only" || q.priceMin !== null) && q.arrivalInMinutes !== null));
+  .refine((q) => !q.available || (q.priceType !== null && (q.priceType === "visit_only" || q.price !== null) && q.arrivalInMinutes !== null));
 const Code = z.object({ code: z.string().regex(/^\d{4}$/) });
 const Done = z.object({ finalPrice: Rupees.nullable().default(null) });
 

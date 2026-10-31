@@ -37,7 +37,7 @@ export function QuoteForm({ quoteRef }: { quoteRef: string }) {
           {priceType === "visit_only" ? (
             <Rupees name="visitCharge" label="Aane ka charge (visit)" hint="Dekh ke kaam ka daam baad mein batayenge. Khaali chhodiye agar visit free hai." />
           ) : (
-            <Rupees name="priceMin" label="Aapka daam" hint="Customer yahi daam dekhega. Kaam ke baad isse zyada mat maangiye." required />
+            <Rupees name="price" label="Aapka daam" hint="Customer yahi daam dekhega. Kaam ke baad isse zyada mat maangiye." required />
           )}
 
           <Choice legend="Saaman ka kharcha" name="materialIncluded" options={MATERIAL} defaultValue="no" />

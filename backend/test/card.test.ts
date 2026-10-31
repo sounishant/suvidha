@@ -80,23 +80,21 @@ describe("normalisers", () => {
 });
 
 describe("workerQuote", () => {
-  it("reads a range quote", () => {
-    expect(workerQuote({ quote: { available: "yes", price_min: "300", price_max: "400", material_included: "yes", earliest_arrival: "2026-10-27T17:30", duration: "45 minutes" } }, NOW)).toMatchObject({
-      available: true, priceType: "range", priceMin: 300, priceMax: 400, materialIncluded: "yes", durationMins: 45,
+  it("reads a fixed quote", () => {
+    expect(workerQuote({ quote: { available: "yes", price: "350", material_included: "yes", earliest_arrival: "2026-10-27T17:30", duration: "45 minutes" } }, NOW)).toMatchObject({
+      available: true, priceType: "fixed", price: 350, visitCharge: null, materialIncluded: "yes", durationMins: 45,
       earliestArrival: new Date("2026-10-27T12:00:00Z"),
     });
   });
 
-  it("reads a fixed price, a visit-only quote and a decline", () => {
-    expect(workerQuote({ available: "haan", price: "350" }, NOW)).toMatchObject({ priceType: "fixed", priceMin: 350, priceMax: 350 });
-    expect(workerQuote({ available: "yes", price_type: "only after visit", visit_charge: "100" }, NOW)).toMatchObject({ priceType: "visit_only", priceMin: null, visitCharge: 100 });
+  it("reads a visit charge from a worker who must see the job first, and a decline", () => {
+    expect(workerQuote({ available: "yes", price_type: "only after visit", visit_charge: "100" }, NOW)).toMatchObject({ priceType: "visit_only", price: null, visitCharge: 100 });
     expect(workerQuote({ available: "no", decline_reason: "bahut door hai" }, NOW)).toMatchObject({ available: false, declineReason: "too_far", priceType: null });
   });
 
-  it("keeps an estimated range even when he says the final price comes after seeing the job", () => {
-    // Kalpana: "kaam dekh kar bata payenge, waise 300-400 rupaye mein ho jana chahiye"
-    expect(workerQuote({ available: "yes", price_type: "visit_only", price_min: "300", price_max: "400" }, NOW))
-      .toMatchObject({ priceType: "range", priceMin: 300, priceMax: 400 });
+  it("takes a named price as fixed even when the worker also says they'd like to see the job", () => {
+    expect(workerQuote({ available: "yes", price_type: "visit_only", price: "350", visit_charge: "100" }, NOW))
+      .toMatchObject({ priceType: "fixed", price: 350, visitCharge: null });
   });
 });
 
