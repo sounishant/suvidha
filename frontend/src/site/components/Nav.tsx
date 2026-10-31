@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Logo } from "@/components/Logo";
-import { copy } from "@/content/copy";
-import { isSet, telHref } from "@/lib/links";
+import { Logo } from "@/site/components/Logo";
+import { copy } from "@/site/content/copy";
+import { isSet, telHref } from "@/site/lib/links";
 
 export function Nav({ phone }: { phone: string }) {
-  const { links, call, callShort, menu } = copy.nav;
+  const { links, call, callShort, login, loginShort, menu } = copy.nav;
   const callLabel = (
     <>
       <span className="sm:hidden">{callShort}</span>
@@ -31,6 +31,10 @@ export function Nav({ phone }: { phone: string }) {
         </nav>
 
         <div className="flex items-center gap-2">
+          <a href="/login" className="btn btn-quiet !min-h-10 !px-4 text-small whitespace-nowrap">
+            <span className="sm:hidden">{loginShort}</span>
+            <span className="hidden sm:inline">{login}</span>
+          </a>
           {isSet(phone) ? (
             <a href={telHref(phone)} className="btn btn-primary !min-h-10 !px-4 text-small whitespace-nowrap">
               {callLabel}

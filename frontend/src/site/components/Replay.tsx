@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CallScreen, Chat, Phone, type Bubble } from "@/components/demo/Phone";
-import { replayCard, replayFacts, replaySteps, type ReplayStep } from "@/content/replay";
+import { CallScreen, Chat, Phone, type Bubble } from "@/site/components/demo/Phone";
+import { replayCard, replayFacts, replaySteps, type ReplayStep } from "@/site/content/replay";
 
 const STEP_MS = 1600;
 // Without sound, calls play at this speed so the whole job fits in about a minute.
@@ -54,7 +54,6 @@ export function Replay() {
   useEffect(() => {
     if (!playing || !step) return;
     if (step.kind !== "call") {
-      if (index === replaySteps.length - 1) return setPlaying(false);
       const timer = setTimeout(next, STEP_MS);
       return () => clearTimeout(timer);
     }

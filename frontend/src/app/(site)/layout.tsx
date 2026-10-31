@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import type { ReactNode } from "react";
-import { Motion } from "@/components/Motion";
+import { Motion } from "@/site/components/Motion";
 import "./globals.css";
 
 const dmSans = DM_Sans({

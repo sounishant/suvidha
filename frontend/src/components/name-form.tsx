@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { saveName, type NameState } from "@/app/account/actions";
+import { saveName, type NameState } from "@/app/(app)/account/actions";
 
 export function NameForm({ next, defaultName, submitLabel }: { next: "/account" | null; defaultName?: string; submitLabel: string }) {
   const [state, action, pending] = useActionState(saveName.bind(null, next), { error: null, saved: false } as NameState);

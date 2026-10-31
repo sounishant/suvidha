@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useTransition } from "react";
 import { Camera } from "lucide-react";
-import { uploadJobPhoto, type JobFormState } from "@/app/account/actions";
+import { uploadJobPhoto, type JobFormState } from "@/app/(app)/account/actions";
 import { cn } from "@/lib/utils";
 
 const MAX_SIDE = 1600;

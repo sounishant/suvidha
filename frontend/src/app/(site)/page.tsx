@@ -1,11 +1,11 @@
-import { Nav } from "@/components/Nav";
-import { Compare, Footer, Hero, Hood, How, Problem, Sides, TryAndListen, Why } from "@/components/Sections";
-import type { Links } from "@/lib/links";
+import { Nav } from "@/site/components/Nav";
+import { Compare, Footer, Hero, Hood, How, Problem, Sides, TryAndListen, Why } from "@/site/components/Sections";
+import type { Links } from "@/site/lib/links";
 
 const PHONE_NUMBER = "07965481722";
 const HOW_IT_WORKS_VIDEO_URL = "/demo-suvidha.mp4";
 const DEMO_API_URL = "https://suvidha-backend-b88r.onrender.com";
-const WEB_APP_URL = "[Vercel app URL]";
+const WEB_APP_URL = "/login";
 const PITCH_VIDEO_URL = "[pitch video URL]";
 const GITHUB_URL = "[repo URL]";
 

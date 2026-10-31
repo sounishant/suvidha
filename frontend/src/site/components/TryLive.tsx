@@ -2,8 +2,8 @@
 
 import type { BolnaWebCall } from "@bolna/web-call";
 import { useEffect, useRef, useState } from "react";
-import { CallScreen, Chat, Phone, type Bubble } from "@/components/demo/Phone";
-import { copy } from "@/content/copy";
+import { CallScreen, Chat, Phone, type Bubble } from "@/site/components/demo/Phone";
+import { copy } from "@/site/content/copy";
 
 type Message = { id: number; kind: string; body: Record<string, unknown> };
 type Job = { ref: string; status: string; trade: string; problem: string | null; locality: string | null; time_window_text: string | null; priorities: string[]; next_action_at: string | null };
@@ -49,7 +49,7 @@ export function TryLive({ api }: { api: string }) {
   const [token, setToken] = useState<string | null>(null);
   const [feed, setFeed] = useState<Feed>({ messages: [], job: null, quotes: [] });
   const [draft, setDraft] = useState("");
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
   const call = useRef<BolnaWebCall | null>(null);
   const speaker = useRef<HTMLAudioElement>(null);
   const after = useRef(0);

@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { copy } from "@/content/copy";
+import { copy } from "@/site/content/copy";
 
 export const alt = "Suvidha: one call, three quotes";
 export const size = { width: 1200, height: 630 };

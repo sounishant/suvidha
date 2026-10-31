@@ -1,4 +1,4 @@
-import { copy } from "@/content/copy";
+import { copy } from "@/site/content/copy";
 
 export function Logo() {
   return (

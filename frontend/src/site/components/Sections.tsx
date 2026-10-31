@@ -1,8 +1,8 @@
-import { Logo } from "@/components/Logo";
-import { Replay } from "@/components/Replay";
-import { TryLive } from "@/components/TryLive";
-import { copy, type Mark } from "@/content/copy";
-import { isSet, telHref, withPhone, type Links } from "@/lib/links";
+import { Logo } from "@/site/components/Logo";
+import { Replay } from "@/site/components/Replay";
+import { TryLive } from "@/site/components/TryLive";
+import { copy, type Mark } from "@/site/content/copy";
+import { isSet, telHref, withPhone, type Links } from "@/site/lib/links";
 
 const SECTION = "border-b border-line";
 const BODY = "frame py-16 md:py-24";
@@ -428,7 +428,7 @@ export function Compare() {
 function FooterLink({ href, label }: { href: string; label: string }) {
   const style = "btn border border-white/30 text-white hover:bg-white/10";
   if (!isSet(href)) return <span className={style}>{label}</span>;
-  if (href.startsWith("#")) {
+  if (href.startsWith("#") || href.startsWith("/")) {
     return (
       <a href={href} className={style}>
         {label}

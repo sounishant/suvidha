@@ -14,6 +14,8 @@ export const copy = {
     ],
     call: "Call Suvidha",
     callShort: "Call",
+    login: "Log in / Sign up",
+    loginShort: "Log in",
     menu: "Menu",
   },
 
