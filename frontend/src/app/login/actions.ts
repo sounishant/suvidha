@@ -8,13 +8,13 @@ export type Role = "customer" | "worker";
 export type LoginState = { step: "phone" | "code"; phone: string; name: string; error: string | null };
 
 const ERRORS: Record<string, string> = {
-  invalid_phone: "Ye number sahi nahi lag raha. 10 ank ka mobile number daaliye.",
-  too_many_codes: "Bahut baar code maanga ya galat daala gaya. Thodi der baad phir koshish kijiye.",
-  wrong_code: "Code galat hai ya purana ho gaya. Dobara daaliye ya naya code mangaiye.",
-  no_name: "Apna naam likhiye.",
-  long_name: "Naam 60 akshar se chhota rakhiye.",
+  invalid_phone: "This number doesn’t look right. Enter your 10-digit mobile number.",
+  too_many_codes: "Too many codes or wrong tries. Please try again after some time.",
+  wrong_code: "The code is wrong or has expired. Try again or ask for a new code.",
+  no_name: "Please enter your name.",
+  long_name: "Keep your name under 60 letters.",
 };
-const SOMETHING_WRONG = "Kuch gadbad hui. Thodi der baad phir koshish kijiye.";
+const SOMETHING_WRONG = "Something went wrong. Please try again in a little while.";
 const HOME: Record<Role, string> = { customer: "/account", worker: "/worker" };
 
 const roleOf = (form: FormData): Role => (form.get("role") === "worker" ? "worker" : "customer");

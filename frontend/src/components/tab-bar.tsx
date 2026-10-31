@@ -13,8 +13,8 @@ const TABS = {
     { href: "/account/profile", label: "Account", Icon: UserRound, match: (p: string) => p.startsWith("/account/profile") },
   ],
   worker: [
-    { href: "/worker", label: "Kaam", Icon: House, match: (p: string) => p === "/worker" || p.startsWith("/worker/quote/") || p.startsWith("/worker/jobs/") },
-    { href: "/worker/earnings", label: "Kamai", Icon: Wallet, match: (p: string) => p.startsWith("/worker/earnings") },
+    { href: "/worker", label: "Jobs", Icon: House, match: (p: string) => p === "/worker" || p.startsWith("/worker/quote/") || p.startsWith("/worker/jobs/") },
+    { href: "/worker/earnings", label: "Earnings", Icon: Wallet, match: (p: string) => p.startsWith("/worker/earnings") },
     { href: "/worker/profile", label: "Account", Icon: UserRound, match: (p: string) => p.startsWith("/worker/profile") },
   ],
 };

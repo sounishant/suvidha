@@ -22,10 +22,10 @@ export function LoginForm({ role }: { role: Role }) {
     return (
       <div className="grid gap-6">
         {role === "customer" && (
-          <div role="tablist" aria-label="Login ya naya account" className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+          <div role="tablist" aria-label="Log in or sign up" className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
             {[
-              { label: "Login", on: !signup },
-              { label: "Naya account", on: signup },
+              { label: "Log in", on: !signup },
+              { label: "Sign up", on: signup },
             ].map((tab, i) => (
               <button
                 key={tab.label}
@@ -45,14 +45,14 @@ export function LoginForm({ role }: { role: Role }) {
           <input type="hidden" name="role" value={role} />
           {signup && (
             <div className="grid gap-2">
-              <label htmlFor="name" className="text-base font-medium">Aapka naam</label>
+              <label htmlFor="name" className="text-base font-medium">Your name</label>
               <Input
                 id="name"
                 name="name"
                 autoComplete="name"
                 maxLength={60}
                 defaultValue={sent.name}
-                placeholder="Jaise: Kavita Sharma"
+                placeholder="e.g. Kavita Sharma"
                 className="h-14 rounded-xl bg-white px-4 text-lg"
                 autoFocus
                 required
@@ -82,12 +82,12 @@ export function LoginForm({ role }: { role: Role }) {
               <p id="phone-error" className="text-sm text-destructive" role="alert">{sent.error}</p>
             ) : (
               <p id="phone-help" className="text-sm text-muted-foreground">
-                {role === "worker" ? "Wahi number jo suvidha mein darj hai. " : ""}Isi number pe WhatsApp pe 6 ank ka code aayega.
+                {role === "worker" ? "The number you registered with suvidha. " : ""}We’ll send a 6-digit code to this number on WhatsApp.
               </p>
             )}
           </div>
           <Button type="submit" disabled={sending} className="h-14 rounded-xl text-lg">
-            {sending ? "Bhej rahe hain…" : "Code bhejiye"}
+            {sending ? "Sending…" : "Send code"}
           </Button>
         </form>
       </div>
@@ -102,8 +102,8 @@ export function LoginForm({ role }: { role: Role }) {
         <input type="hidden" name="phone" value={sent.phone} />
         <input type="hidden" name="name" value={sent.name} />
         <div className="grid gap-3">
-          <label htmlFor="code" className="text-base font-medium">WhatsApp pe aaya code</label>
-          <p className="text-sm text-muted-foreground">+91 {sent.phone.slice(0, 5)} {sent.phone.slice(5)} pe bheja gaya</p>
+          <label htmlFor="code" className="text-base font-medium">Code from WhatsApp</label>
+          <p className="text-sm text-muted-foreground">Sent to +91 {sent.phone.slice(0, 5)} {sent.phone.slice(5)}</p>
           <InputOTP pattern={REGEXP_ONLY_DIGITS} pasteTransformer={digitsOnly} id="code" name="code" maxLength={6} inputMode="numeric" autoComplete="one-time-code" autoFocus aria-invalid={error ? true : undefined}>
             <InputOTPGroup className="gap-1.5 sm:gap-2">
               {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -114,7 +114,7 @@ export function LoginForm({ role }: { role: Role }) {
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
         </div>
         <Button type="submit" disabled={checking} className="h-14 rounded-xl text-lg">
-          {checking ? "Jaanch rahe hain…" : sent.name ? "Account banaiye" : "Login kijiye"}
+          {checking ? "Checking…" : sent.name ? "Create account" : "Log in"}
         </Button>
       </form>
       <div className="flex justify-between text-sm">
@@ -123,10 +123,10 @@ export function LoginForm({ role }: { role: Role }) {
           <input type="hidden" name="phone" value={sent.phone} />
           {sent.name && <input type="hidden" name="name" value={sent.name} />}
           <button type="submit" className="font-medium text-primary underline-offset-4 hover:underline" disabled={sending}>
-            Naya code mangaiye
+            Get a new code
           </button>
         </form>
-        <a href={role === "worker" ? "/login/worker" : "/login"} className="text-muted-foreground underline-offset-4 hover:underline">Number badliye</a>
+        <a href={role === "worker" ? "/login/worker" : "/login"} className="text-muted-foreground underline-offset-4 hover:underline">Change number</a>
       </div>
     </div>
   );

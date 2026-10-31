@@ -17,7 +17,7 @@ export default function BookingsPage({ searchParams }: PageProps<"/account/booki
   return (
     <div className="grid gap-6">
       <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Bookings</h1>
-      <Suspense fallback={<div className="h-64 rounded-2xl border bg-white" aria-busy="true" aria-label="Bookings load ho rahi hain" />}>
+      <Suspense fallback={<div className="h-64 rounded-2xl border bg-white" aria-busy="true" aria-label="Loading bookings" />}>
         <List searchParams={searchParams} />
       </Suspense>
     </div>
@@ -37,8 +37,8 @@ async function List({ searchParams }: Pick<PageProps<"/account/bookings">, "sear
     <div className="grid gap-5">
       <nav aria-label="Bookings" className="inline-flex w-fit rounded-xl bg-white p-1 ring-1 ring-border">
         {[
-          { href: "/account/bookings", label: `Chal rahe (${open.length})`, on: !past },
-          { href: "/account/bookings?tab=past", label: `Pichhle (${done.length})`, on: past },
+          { href: "/account/bookings", label: `Ongoing (${open.length})`, on: !past },
+          { href: "/account/bookings?tab=past", label: `Past (${done.length})`, on: past },
         ].map((t) => (
           <Link
             key={t.href}
@@ -53,10 +53,10 @@ async function List({ searchParams }: Pick<PageProps<"/account/bookings">, "sear
 
       {shown.length === 0 ? (
         <div className="rounded-2xl border bg-white p-6">
-          <p className="text-lg font-medium">{past ? "Abhi tak koi pichhla kaam nahi." : "Abhi koi kaam chal nahi raha."}</p>
-          <p className="mt-1 text-muted-foreground">Naya kaam? Home pe service chuniye, ya call kijiye.</p>
+          <p className="text-lg font-medium">{past ? "No past jobs yet." : "No jobs in progress."}</p>
+          <p className="mt-1 text-muted-foreground">Need something fixed? Choose a service on Home, or call us.</p>
           <Link href="/account" className="mt-4 inline-flex items-center gap-1 font-medium text-primary">
-            Home pe jaiye <ChevronRight className="size-4" aria-hidden="true" />
+            Go to Home <ChevronRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
       ) : past ? (
@@ -67,7 +67,7 @@ async function List({ searchParams }: Pick<PageProps<"/account/bookings">, "sear
                 <span className="grid flex-1 gap-0.5">
                   <span className="font-medium">{job.title}</span>
                   <span className="text-sm text-muted-foreground">
-                    {TRADE[job.trade] ?? "Kaarigar"}
+                    {TRADE[job.trade] ?? "Worker"}
                     {job.worker ? ` · ${job.worker}` : ""} · {dateText(job.createdAt)}
                   </span>
                 </span>

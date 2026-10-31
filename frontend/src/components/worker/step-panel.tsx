@@ -15,16 +15,16 @@ const NONE: FormState = { error: null };
 
 export function StepPanel({ job }: { job: ActiveJob }) {
   if (job.stage === "booked") return <TripForm jobRef={job.jobRef} />;
-  if (job.stage === "on_the_way") return <CodeForm key="start" jobRef={job.jobRef} kind="start" label="Customer ka start code" submit="Kaam shuru kijiye" />;
+  if (job.stage === "on_the_way") return <CodeForm key="start" jobRef={job.jobRef} kind="start" label="Customer’s start code" submit="Start work" />;
   if (job.stage === "working") return <DoneForm jobRef={job.jobRef} price={job.price} />;
-  return <CodeForm key="finish" jobRef={job.jobRef} kind="finish" label="Customer ka finish code" submit="Kaam band kijiye" />;
+  return <CodeForm key="finish" jobRef={job.jobRef} kind="finish" label="Customer’s finish code" submit="Close job" />;
 }
 
 function TripForm({ jobRef }: { jobRef: string }) {
   const [state, action, pending] = useActionState(bookingStep.bind(null, jobRef, "trip"), NONE);
   return (
     <form action={action} className="grid gap-3">
-      <Button type="submit" disabled={pending} className="h-14 rounded-xl text-lg">{pending ? "Bata rahe hain…" : "Nikal pada hoon"}</Button>
+      <Button type="submit" disabled={pending} className="h-14 rounded-xl text-lg">{pending ? "Sending…" : "I’m on my way"}</Button>
       <Error message={state.error} />
     </form>
   );
@@ -45,7 +45,7 @@ function CodeForm({ jobRef, kind, label, submit }: { jobRef: string; kind: "star
         </InputOTP>
       </div>
       <Error message={state.error} />
-      <Button type="submit" disabled={pending} className="h-14 rounded-xl text-lg">{pending ? "Jaanch rahe hain…" : submit}</Button>
+      <Button type="submit" disabled={pending} className="h-14 rounded-xl text-lg">{pending ? "Checking…" : submit}</Button>
     </form>
   );
 }
@@ -55,16 +55,16 @@ function DoneForm({ jobRef, price }: { jobRef: string; price: number | null }) {
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-2">
-        <label htmlFor="finalPrice" className="text-base font-medium">Final daam</label>
+        <label htmlFor="finalPrice" className="text-base font-medium">Final price</label>
         <div className="flex h-14 items-center rounded-xl border border-input bg-white focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
           <span className="pl-4 pr-1 text-lg text-muted-foreground">₹</span>
           <Input id="finalPrice" name="finalPrice" inputMode="numeric" pattern="[0-9]*" maxLength={6} defaultValue={price ?? undefined} required
             aria-describedby="finalPrice-hint" className="h-full border-0 bg-transparent text-lg tabular-nums shadow-none focus-visible:ring-0" />
         </div>
-        <p id="finalPrice-hint" className="text-sm text-muted-foreground">Customer ko yahi daam WhatsApp pe finish code ke saath dikhega.</p>
+        <p id="finalPrice-hint" className="text-sm text-muted-foreground">The customer sees this price on WhatsApp with the finish code.</p>
       </div>
       <Error message={state.error} />
-      <Button type="submit" disabled={pending} className="h-14 rounded-xl text-lg">{pending ? "Bhej rahe hain…" : "Kaam ho gaya"}</Button>
+      <Button type="submit" disabled={pending} className="h-14 rounded-xl text-lg">{pending ? "Sending…" : "Work done"}</Button>
     </form>
   );
 }

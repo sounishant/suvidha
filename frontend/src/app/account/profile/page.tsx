@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LogOut, MessageCircle, Phone } from "lucide-react";
+import { LogOut, MessageCircle, Phone, Wallet } from "lucide-react";
 import { NameForm } from "@/components/name-form";
 import { Button } from "@/components/ui/button";
 import { CALL, whatsappLink } from "@/lib/contact";
+import { rupees } from "@/lib/job-text";
 import { customerProfile } from "@/lib/session";
 import { logout } from "../actions";
 
@@ -13,23 +14,23 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto grid max-w-xl gap-6">
       <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Account</h1>
-      <Suspense fallback={<div className="h-56 rounded-2xl border bg-white" aria-busy="true" aria-label="Account load ho raha hai" />}>
+      <Suspense fallback={<div className="h-56 rounded-2xl border bg-white" aria-busy="true" aria-label="Loading account" />}>
         <Details />
       </Suspense>
 
       <section aria-labelledby="help" className="grid gap-1 rounded-2xl border bg-white p-2">
-        <h2 id="help" className="px-4 pb-1 pt-3 text-sm font-medium text-muted-foreground">Madad</h2>
+        <h2 id="help" className="px-4 pb-1 pt-3 text-sm font-medium text-muted-foreground">Help</h2>
         <a href={CALL.tel} className="flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium hover:bg-muted">
-          <Phone className="size-5 text-primary" aria-hidden="true" /> Call kijiye · {CALL.label}
+          <Phone className="size-5 text-primary" aria-hidden="true" /> Call us · {CALL.label}
         </a>
-        <a href={whatsappLink("Namaste suvidha, mujhe madad chahiye.")} className="flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium hover:bg-muted">
-          <MessageCircle className="size-5 text-primary" aria-hidden="true" /> WhatsApp pe likhiye
+        <a href={whatsappLink("Hello suvidha, I need help.")} className="flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium hover:bg-muted">
+          <MessageCircle className="size-5 text-primary" aria-hidden="true" /> Message us on WhatsApp
         </a>
       </section>
 
       <form action={logout}>
         <Button type="submit" variant="outline" className="h-12 w-full rounded-xl text-base text-destructive">
-          <LogOut className="size-4" aria-hidden="true" /> Logout
+          <LogOut className="size-4" aria-hidden="true" /> Log out
         </Button>
       </form>
     </div>
@@ -45,11 +46,18 @@ async function Details() {
           {(profile.name ?? "?").charAt(0).toUpperCase()}
         </span>
         <div>
-          <h2 id="me" className="text-xl font-semibold">{profile.name ?? "Naam nahi diya"}</h2>
+          <h2 id="me" className="text-xl font-semibold">{profile.name ?? "No name yet"}</h2>
           <p className="text-muted-foreground tabular-nums">+91 {profile.phone.slice(3, 8)} {profile.phone.slice(8)}</p>
         </div>
       </div>
-      <NameForm next={null} defaultName={profile.name ?? ""} submitLabel="Naam save kijiye" />
+      <NameForm next={null} defaultName={profile.name ?? ""} submitLabel="Save name" />
+      <div className="flex items-start gap-3 rounded-xl bg-muted p-4">
+        <Wallet className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+        <div>
+          <p className="font-medium">suvidha credit: <span className="tabular-nums">{rupees(profile.credit)}</span></p>
+          <p className="text-sm text-muted-foreground">Credit from refunds or apologies is used first on your next booking fee. It never expires.</p>
+        </div>
+      </div>
     </section>
   );
 }

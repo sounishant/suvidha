@@ -54,9 +54,16 @@ export function stubServices() {
       return ref === "MINE" ? ({ ref } as never) : null;
     },
     bookForCustomer: record("bookForCustomer", { payUrl: "https://pay.test/pay/p1" }),
-    customerProfile: record("customerProfile", { phone: "+919876543210", name: "Asha" }),
+    customerProfile: record("customerProfile", { phone: "+919876543210", name: "Asha", credit: 0 }),
     setCustomerName: record("setCustomerName", undefined),
-    workerHome: record("workerHome", { profile: { name: "Nishant", trades: ["electrician"], verified: true, rating: null, online: true }, invites: [], active: [], earnings: { jobs: 0, total: 0, monthJobs: 0, monthTotal: 0 }, recent: [] }),
+    messageForJob: record("messageForJob", "noted" as const),
+    photoForJob: record("photoForJob", "saved" as const),
+    cancelForCustomer: record("cancelForCustomer", true),
+    cancelForWorker: record("cancelForWorker", true),
+    workerHome: record("workerHome", {
+      profile: { name: "Nishant", trades: ["electrician"], verified: true, rating: null, online: true, calledLastUntil: null },
+      invites: [], active: [], earnings: { jobs: 0, total: 0, monthJobs: 0, monthTotal: 0, travelTotal: 0, travelMonth: 0 }, travel: [], recent: [],
+    }),
     setOnline: record("setOnline", undefined),
     quoteFromApp: record("quoteFromApp", true),
     bookingStep: async (_s: unknown, _ref: string, step: unknown) => {

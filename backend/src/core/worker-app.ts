@@ -3,12 +3,14 @@ import { whatsappText, whenLabel } from "../messages.ts";
 import type { Session } from "./app-login.ts";
 import type { WorkerQuote } from "./card.ts";
 import type { Ctx } from "./context.ts";
+import { workerCancels } from "./cancellations.ts";
 import { logEvent } from "./events.ts";
-import { jobById, jobLabel, moveJob, whenText, type JobStatus } from "./jobs.ts";
+import { NO_SHOW_CALL_LAST_DAYS } from "./fees.ts";
+import { jobById, jobLabel, moveJob, photoLink, whenText, type JobStatus } from "./jobs.ts";
 import { toWhatsApp } from "./phone.ts";
 import { recordWorkerCall } from "./quotes.ts";
 
-const APP_LANG = "hi";
+const APP_LANG = "en";
 const MAX_CODE_ATTEMPTS = 5;
 
 type InviteRow = {
@@ -22,6 +24,8 @@ type InviteRow = {
   locality: string | null;
   material: string | null;
   safety_note: string | null;
+  photo_url: string | null;
+  customer_notes: string[];
   time_window_text: string | null;
   window_end: Date | null;
   distance_km: number | null;
@@ -44,7 +48,10 @@ type ActiveRow = {
   locality: string | null;
   site_contact: string | null;
   safety_note: string | null;
+  photo_url: string | null;
+  customer_notes: string[];
   customer_name: string | null;
+  customer_phone: string;
   time_window_text: string | null;
   window_end: Date | null;
   eta_at: Date | null;
@@ -55,15 +62,16 @@ type ActiveRow = {
   final_price_inr: number | null;
 };
 
-// Before booking a worker sees the area, never the address or the customer's phone (job-card spec, "Who sees what").
+// Before booking a worker sees the area, never the address or the customer's phone (job-card spec, "Who sees what");
+// once booked, the worker also gets a number to call the customer on until the job closes.
 export async function workerHome(ctx: Ctx, session: Session) {
   const now = ctx.now();
-  const [profile] = await ctx.sql<{ name: string; trades: string[]; verified: boolean; rating: string | null; rating_count: number; online: boolean }[]>`
-    select name, trades, verified, rating, rating_count, online from workers where id = ${session.workerId}`;
+  const [profile] = await ctx.sql<{ name: string; trades: string[]; verified: boolean; rating: string | null; rating_count: number; online: boolean; last_no_show_at: Date | null }[]>`
+    select name, trades, verified, rating, rating_count, online, last_no_show_at from workers where id = ${session.workerId}`;
 
   const quotes = await ctx.sql<InviteRow[]>`
     select q.ref, j.ref as job_ref, j.status, j.trade, j.job_type, j.job_type_other, j.problem, j.locality, j.material,
-           j.safety_note, j.time_window_text, j.window_end, q.distance_km, q.quoted_at, q.available, q.price_type,
+           j.safety_note, j.photo_url, j.customer_notes, j.time_window_text, j.window_end, q.distance_km, q.quoted_at, q.available, q.price_type,
            q.price, q.visit_charge, q.earliest_arrival, b.worker_id as booked_worker
     from quotes q join jobs j on j.id = q.job_id left join bookings b on b.job_id = j.id
     where q.worker_id = ${session.workerId} and j.status in ('inviting', 'quotes_in', 'awaiting_payment', 'booked')
@@ -72,7 +80,7 @@ export async function workerHome(ctx: Ctx, session: Session) {
 
   const active = await ctx.sql<ActiveRow[]>`
     select j.ref as job_ref, j.trade, j.job_type, j.job_type_other, j.problem, j.address, j.locality, j.site_contact,
-           j.safety_note, c.name as customer_name, j.time_window_text, j.window_end, b.eta_at, b.trip_started_at,
+           j.safety_note, j.photo_url, j.customer_notes, c.name as customer_name, c.phone as customer_phone, j.time_window_text, j.window_end, b.eta_at, b.trip_started_at,
            b.started_at, b.done_at, q.price, b.final_price_inr
     from bookings b join jobs j on j.id = b.job_id join customers c on c.id = j.customer_id left join quotes q on q.id = b.quote_id
     where b.worker_id = ${session.workerId} and b.closed_at is null and j.status = 'booked'
@@ -84,12 +92,26 @@ export async function workerHome(ctx: Ctx, session: Session) {
            coalesce(sum(final_price_inr) filter (where closed_at >= date_trunc('month', now() at time zone 'Asia/Kolkata') at time zone 'Asia/Kolkata'), 0)::int as month_total
     from bookings where worker_id = ${session.workerId} and closed_at is not null`;
 
+  const [paid] = await ctx.sql<{ total: number; month_total: number }[]>`
+    select coalesce(sum(amount_inr), 0)::int as total,
+           coalesce(sum(amount_inr) filter (where created_at >= date_trunc('month', now() at time zone 'Asia/Kolkata') at time zone 'Asia/Kolkata'), 0)::int as month_total
+    from payouts where worker_id = ${session.workerId}`;
+
+  const travel = await ctx.sql<{ job_ref: string; job_type: string | null; job_type_other: string | null; problem: string | null; amount_inr: number; created_at: Date }[]>`
+    select j.ref as job_ref, j.job_type, j.job_type_other, j.problem, p.amount_inr, p.created_at
+    from payouts p join jobs j on j.id = p.job_id
+    where p.worker_id = ${session.workerId} order by p.created_at desc limit 10`;
+
   const recent = await ctx.sql<{ job_ref: string; trade: string; job_type: string | null; job_type_other: string | null; problem: string | null; locality: string | null; closed_at: Date; final_price_inr: number | null }[]>`
     select j.ref as job_ref, j.trade, j.job_type, j.job_type_other, j.problem, j.locality, b.closed_at, b.final_price_inr
     from bookings b join jobs j on j.id = b.job_id
     where b.worker_id = ${session.workerId} and b.closed_at is not null order by b.closed_at desc limit 10`;
 
   const title = (r: { job_type: string | null; job_type_other: string | null; problem: string | null }) => jobLabel({ ...r, language: APP_LANG });
+  // Closed invites need no photo, which saves a storage call each.
+  const invitePhotos = await Promise.all(quotes.map((q) => (q.status === "inviting" || q.status === "quotes_in" || q.status === "awaiting_payment" ? photoLink(ctx, q.photo_url) : null)));
+  const activePhotos = await Promise.all(active.map((a) => photoLink(ctx, a.photo_url)));
+  const calledLastUntil = profile!.last_no_show_at && new Date(profile!.last_no_show_at.getTime() + NO_SHOW_CALL_LAST_DAYS * 86_400_000);
   return {
     profile: {
       name: profile!.name,
@@ -97,8 +119,9 @@ export async function workerHome(ctx: Ctx, session: Session) {
       verified: profile!.verified,
       rating: profile!.rating_count >= 3 && profile!.rating ? Number(profile!.rating) : null,
       online: profile!.online,
+      calledLastUntil: calledLastUntil && calledLastUntil > now ? calledLastUntil.toISOString() : null,
     },
-    invites: quotes.map((q) => ({
+    invites: quotes.map((q, i) => ({
       quoteRef: q.ref,
       jobRef: q.job_ref,
       trade: q.trade,
@@ -107,6 +130,8 @@ export async function workerHome(ctx: Ctx, session: Session) {
       locality: q.locality,
       material: q.material,
       safetyNote: q.safety_note,
+      photoUrl: invitePhotos[i]!,
+      notes: q.customer_notes,
       when: whenText({ ...q, language: APP_LANG }, now),
       distanceKm: q.distance_km,
       // open: he can still quote; sent: waiting for the customer; closed: the job went elsewhere or ended.
@@ -115,22 +140,35 @@ export async function workerHome(ctx: Ctx, session: Session) {
         ? { available: q.available, priceType: q.price_type, price: q.price, visitCharge: q.visit_charge, arrives: q.earliest_arrival ? whenLabel(APP_LANG, q.earliest_arrival, now) : null }
         : null,
     })),
-    active: active.map((a) => ({
+    active: active.map((a, i) => ({
       jobRef: a.job_ref,
       trade: a.trade,
       title: title(a),
       problem: a.problem,
       address: a.address ?? a.locality,
       customer: a.site_contact ?? a.customer_name,
+      // The customer's own number until masked calling gives a line that hides both sides.
+      callNumber: a.customer_phone,
       safetyNote: a.safety_note,
+      photoUrl: activePhotos[i]!,
+      notes: a.customer_notes,
       when: whenText({ ...a, language: APP_LANG }, now),
       eta: a.eta_at ? whenLabel(APP_LANG, a.eta_at, now) : null,
       stage: a.done_at ? "done" : a.started_at ? "working" : a.trip_started_at ? "on_the_way" : "booked",
       price: a.final_price_inr ?? a.price,
     })),
-    earnings: { jobs: earned!.jobs, total: earned!.total, monthJobs: earned!.month_jobs, monthTotal: earned!.month_total },
+    earnings: {
+      jobs: earned!.jobs, total: earned!.total, monthJobs: earned!.month_jobs, monthTotal: earned!.month_total,
+      travelTotal: paid!.total, travelMonth: paid!.month_total,
+    },
+    travel: travel.map((t) => ({ jobRef: t.job_ref, title: title(t), amount: t.amount_inr, paidAt: t.created_at.toISOString() })),
     recent: recent.map((r) => ({ jobRef: r.job_ref, trade: r.trade, title: title(r), locality: r.locality, closedAt: r.closed_at.toISOString(), price: r.final_price_inr })),
   };
+}
+
+// "Can't come": the customer gets their money back and an apology credit.
+export async function cancelForWorker(ctx: Ctx, session: Session, ref: string) {
+  return workerCancels(ctx, session.phone, ref);
 }
 
 export async function setOnline(ctx: Ctx, session: Session, online: boolean) {

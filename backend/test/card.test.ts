@@ -68,6 +68,7 @@ describe("normalisers", () => {
     expect(["Carpenter laaye", "mere paas hai", "pata nahi", "worker_brings"].map(toMaterial)).toEqual(["worker_brings", "customer_has", "not_sure", "worker_brings"]);
     expect(toPriorities("woh bahut late aaya tha")).toEqual(["speed"]);
     expect(toPriorities("price, speed, quality")).toEqual(["price", "speed", "quality"]);
+    expect(["Earliest arrival", "Lowest price", "Best rated"].map((t) => toPriorities(t)[0])).toEqual(["speed", "price", "quality"]);
     expect([toBudget("Rs 300 to 500"), toBudget("1,200"), toBudget("koi nahi")]).toEqual([500, 1200, null]);
   });
 

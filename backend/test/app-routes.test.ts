@@ -48,7 +48,7 @@ describe("web app routes", () => {
   it("save a name between 1 and 60 characters", async () => {
     expect((await call("POST", "/customer/profile", signedIn, { name: "  " })).status).toBe(400);
     expect((await call("POST", "/customer/profile", signedIn, { name: "Asha" })).status).toBe(200);
-    expect(await (await call("GET", "/customer/profile", signedIn)).json()).toEqual({ ok: true, profile: { phone: "+919876543210", name: "Asha" } });
+    expect(await (await call("GET", "/customer/profile", signedIn)).json()).toEqual({ ok: true, profile: { phone: "+919876543210", name: "Asha", credit: 0 } });
   });
 
   it("keep customers and workers to their own routes", async () => {
@@ -78,5 +78,27 @@ describe("web app routes", () => {
     const res = await call("POST", "/customer/jobs/MINE/book", signedIn, { quoteRef: "Q7K2" });
     expect(await res.json()).toEqual({ ok: true, payUrl: "https://pay.test/pay/p1" });
     expect(app.calls.at(-1)).toEqual({ name: "bookForCustomer", input: expect.objectContaining({ id: "s1" }) });
+  });
+
+  it("take a job message of 1 to 500 characters", async () => {
+    expect((await call("POST", "/customer/jobs/MINE/message", signedIn, { text: " " })).status).toBe(400);
+    expect((await call("POST", "/customer/jobs/MINE/message", signedIn, { text: "x".repeat(501) })).status).toBe(400);
+    expect(await (await call("POST", "/customer/jobs/MINE/message", signedIn, { text: "Gate is blue" })).json()).toEqual({ ok: true, kind: "noted" });
+    expect((await call("POST", "/customer/jobs/MINE/message", asWorker, { text: "hi" })).status).toBe(403);
+  });
+
+  it("take a job photo only as image bytes", async () => {
+    const send = (type: string, body: BodyInit) =>
+      fetch(`${app.url}/app/customer/jobs/MINE/photo`, { method: "POST", headers: { ...signedIn, "content-type": type }, body });
+    expect((await send("text/html", "<script>")).status).toBe(400);
+    expect((await send("image/jpeg", new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).status).toBe(200);
+    expect((await send("image/jpeg", new Uint8Array(5 * 1024 * 1024 + 1))).status).toBe(413);
+  });
+
+  it("let each side cancel only through its own route", async () => {
+    expect((await call("POST", "/customer/jobs/MINE/cancel", signedIn)).status).toBe(200);
+    expect(app.calls.at(-1)).toEqual({ name: "cancelForCustomer", input: expect.objectContaining({ id: "s1" }) });
+    expect((await call("POST", "/worker/jobs/J1/cancel", signedIn)).status).toBe(403);
+    expect((await call("POST", "/worker/jobs/J1/cancel", asWorker)).status).toBe(200);
   });
 });

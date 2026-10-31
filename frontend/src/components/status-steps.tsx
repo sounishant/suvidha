@@ -7,7 +7,7 @@ export function StatusSteps({ status }: { status: JobStatus }) {
   const now = stepOf(status);
   const stopped = status === "cancelled" || status === "no_workers";
   return (
-    <ol className="grid grid-cols-4 gap-2" aria-label="Kaam kahan tak pahuncha">
+    <ol className="grid grid-cols-4 gap-2" aria-label="Job progress">
       {STEPS.map((step, i) => {
         const done = !stopped && (i < now || status === "done");
         const current = !stopped && i === now && status !== "done";

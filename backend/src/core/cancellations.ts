@@ -52,6 +52,14 @@ const yesNo = (lang: string, yesId: string) => [
   { id: "cancel_no", title: whatsappText(lang, "button_no") },
 ];
 
+// What cancelling now would mean for the customer's money; null when they can't cancel this job.
+export async function customerCancelTerms(ctx: Ctx, phone: string, ref: string) {
+  const b = await findJob(ctx.sql, ref);
+  if (!b || b.customer_phone !== phone || !CANCELLABLE.includes(b.status)) return null;
+  if (b.status !== "booked") return { booked: false, worker: null, cashBack: 0, creditBack: 0, apology: 0, travelPay: 0 };
+  return { booked: true, worker: b.worker, ...split(b, customerCause(b, ctx.now())) };
+}
+
 // First tap on Cancel: say what it will cost and ask to confirm.
 export async function askCustomerCancel(ctx: Ctx, phone: string, ref: string) {
   const b = await findJob(ctx.sql, ref);
