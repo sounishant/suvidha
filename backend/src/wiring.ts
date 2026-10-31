@@ -1,6 +1,6 @@
 import type { Sql } from "postgres";
 import { bolnaApi, offlineBolna } from "./clients/bolna.ts";
-import { googleMaps, offlineMaps } from "./clients/maps.ts";
+import { ROORKEE, googleMaps, offlineMaps } from "./clients/maps.ts";
 import { fakePayments } from "./clients/payments.ts";
 import { offlineStorage, supabaseStorage } from "./clients/storage.ts";
 import { cloudWhatsApp, offlineWhatsApp } from "./clients/whatsapp.ts";
@@ -32,7 +32,7 @@ export function buildCtx(config: Config, sql: Sql, log: (line: string) => void):
       config.SUPABASE_URL && config.SUPABASE_SERVICE_ROLE_KEY
         ? supabaseStorage({ url: config.SUPABASE_URL, serviceRoleKey: config.SUPABASE_SERVICE_ROLE_KEY })
         : offlineStorage(log),
-    maps: config.GOOGLE_MAPS_API_KEY ? googleMaps(config.GOOGLE_MAPS_API_KEY) : offlineMaps(log),
+    maps: config.GOOGLE_MAPS_API_KEY ? googleMaps(config.GOOGLE_MAPS_API_KEY, ROORKEE) : offlineMaps(log),
     payments: fakePayments(config.BACKEND_PUBLIC_URL ?? `http://localhost:${config.PORT}`, log),
     customerLine,
     workerLine,

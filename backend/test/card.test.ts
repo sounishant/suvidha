@@ -46,6 +46,13 @@ describe("customerCard", () => {
     expect(missingFields(card)).toEqual([]);
   });
 
+  it("keeps the area the caller named apart from the full address", () => {
+    expect(customerCard({ address: "H.No. 12, IIT Roorkee bus adda", area: "IIT Roorkee, bus adda ke paas" }, NOW)).toMatchObject({
+      address: "H.No. 12, IIT Roorkee bus adda", area: "IIT Roorkee, bus adda ke paas",
+    });
+    expect(customerCard({ address: "Civil Lines" }, NOW).area).toBeNull();
+  });
+
   it("keeps the caller's words for a job type outside the list", () => {
     const card = customerCard({ trade: "carpenter", job_type: "Jhoola theek karna" }, NOW);
     expect([card.jobType, card.jobTypeOther]).toEqual(["other", "Jhoola theek karna"]);

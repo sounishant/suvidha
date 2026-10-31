@@ -123,7 +123,8 @@ export async function jobFromCall(ctx: Ctx, call: { executionId: string; phone: 
           problem: card.problem,
           material: card.material,
           address: card.address,
-          locality: place?.locality ?? null,
+          // Workers see this before booking: the area the caller named, never Google's name for the point.
+          locality: card.area ?? place?.locality ?? null,
           lat: place?.lat ?? null,
           lng: place?.lng ?? null,
           site_contact: card.siteContact,

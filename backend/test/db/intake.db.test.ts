@@ -174,11 +174,11 @@ describe("a complete intake call", () => {
   let jobId = "";
 
   it("builds a confirmed card from the extraction and sends the WhatsApp summary", async () => {
-    const j = await intakeCall(phone);
+    const j = await intakeCall(phone, { area: "Civil Lines, Roorkee" });
     jobId = j.id;
     expect(j).toMatchObject({
       status: "confirmed", trade: "carpenter", job_type: "door_repair", material: "worker_brings", priorities: ["speed"],
-      locality: "Civil Lines", urgency: "tomorrow", complexity: "standard", needs_visit: false, missing_fields: [],
+      locality: "Civil Lines, Roorkee", urgency: "tomorrow", complexity: "standard", needs_visit: false, missing_fields: [],
       next_action_at: inSeconds(60),
     });
     expect(sent).toEqual([expect.objectContaining({ to: "919100000001", kind: "text" })]);
@@ -210,7 +210,8 @@ describe("a complete intake call", () => {
       expect(t).not.toContain("Gurudwara");
       expect(t).not.toContain("9100000001");
     }
-    expect(cards[0]!.text).toContain("Civil Lines");
+    expect(cards[0]!.text).toContain("Jagah: Civil Lines, Roorkee");
+    expect(placed[0]!.userData).toMatchObject({ area: "Civil Lines, Roorkee" });
   });
 
   it("replaces a decline or a missed call with the next worker and stops once 3 quotes are in", async () => {

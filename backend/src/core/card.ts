@@ -151,6 +151,7 @@ export type CustomerCard = {
   material: "customer_has" | "worker_brings" | "not_sure" | null;
   firstName: string | null;
   address: string | null;
+  area: string | null;
   siteContact: string | null;
   timeWindowText: string | null;
   windowStart: Date | null;
@@ -182,6 +183,7 @@ export function customerCard(data: unknown, now: Date): CustomerCard {
     material: materialText ? toMaterial(materialText) : null,
     firstName: get("first_name", "name", "customer_name") ?? null,
     address: get("address", "full_address") ?? null,
+    area: get("area") ?? null,
     siteContact: get("site_contact") ?? null,
     timeWindowText: windowText ?? null,
     windowStart: plausible(toTimestamp(get("time_window_earliest", "earliest")), now),
