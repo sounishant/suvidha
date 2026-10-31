@@ -1,7 +1,7 @@
 export type Links = {
   phone: string;
   howVideo: string;
-  listenDemo: string;
+  demoApi: string;
   webApp: string;
   pitch: string;
   github: string;

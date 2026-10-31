@@ -1,4 +1,6 @@
 import { Logo } from "@/components/Logo";
+import { Replay } from "@/components/Replay";
+import { TryLive } from "@/components/TryLive";
 import { copy, type Mark } from "@/content/copy";
 import { isSet, telHref, withPhone, type Links } from "@/lib/links";
 
@@ -217,30 +219,30 @@ export function How({ links }: { links: Links }) {
 export function TryAndListen({ links }: { links: Links }) {
   const { tryLive, listen } = copy;
   return (
-    <section className={SECTION}>
-      <div className={`${BODY} grid gap-4 lg:grid-cols-[5fr_7fr]`}>
-        <div id="try" data-reveal className="flex flex-col justify-between gap-10 rounded-stage bg-accent p-6 text-white sm:p-10">
-          <div>
-            <h2 className="text-head">
-              {tryLive.heading[0]} <em>{tryLive.heading[1]}</em>
-            </h2>
-            <p className="mt-4 text-lead leading-snug opacity-90">{tryLive.body}</p>
-          </div>
-          <a href={telHref(links.phone)} className="text-figure leading-none font-medium tabular-nums underline decoration-white/40 underline-offset-8 hover:decoration-white">
-            {links.phone}
-          </a>
-        </div>
-        <div id="listen" data-reveal className="rounded-stage bg-tint p-6 sm:p-10">
-          <h2 className="text-head">
-            {listen.heading[0]} <em className="text-accent-text">{listen.heading[1]}</em>
-          </h2>
-          <p className="mt-4 text-lead leading-snug text-muted">{listen.body}</p>
-          <div className="mt-8">
-            <Media url={links.listenDemo} title={listen.title} empty={listen.empty} onTint />
+    <>
+      <section id="try" className={SECTION}>
+        <div className={BODY}>
+          <Heading parts={tryLive.heading} />
+          <p data-reveal className="mt-4 max-w-2xl text-lead leading-snug text-muted">
+            {tryLive.body}
+          </p>
+          <div className="mt-10 md:mt-14">
+            <TryLive api={links.demoApi} />
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+      <section id="listen" className={SECTION}>
+        <div className={BODY}>
+          <Heading parts={listen.heading} />
+          <p data-reveal className="mt-4 max-w-2xl text-lead leading-snug text-muted">
+            {listen.body}
+          </p>
+          <div className="mt-10 md:mt-14">
+            <Replay />
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 

@@ -4,7 +4,7 @@ import type { Links } from "@/lib/links";
 
 const PHONE_NUMBER = "07965481722";
 const HOW_IT_WORKS_VIDEO_URL = "/demo-suvidha.mp4";
-const LISTEN_DEMO_URL = "[job registration recording URL]";
+const DEMO_API_URL = "https://suvidha-backend-b88r.onrender.com";
 const WEB_APP_URL = "[Vercel app URL]";
 const PITCH_VIDEO_URL = "[pitch video URL]";
 const GITHUB_URL = "[repo URL]";
@@ -12,7 +12,7 @@ const GITHUB_URL = "[repo URL]";
 const links: Links = {
   phone: PHONE_NUMBER,
   howVideo: HOW_IT_WORKS_VIDEO_URL,
-  listenDemo: LISTEN_DEMO_URL,
+  demoApi: DEMO_API_URL,
   webApp: WEB_APP_URL,
   pitch: PITCH_VIDEO_URL,
   github: GITHUB_URL,

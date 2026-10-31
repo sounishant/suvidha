@@ -10,7 +10,7 @@ export const copy = {
     links: [
       { label: "How it works", href: "#how" },
       { label: "Try it live", href: "#try" },
-      { label: "Hear a real call", href: "#listen" },
+      { label: "Watch a real job", href: "#listen" },
     ],
     call: "Call Suvidha",
     callShort: "Call",
@@ -77,14 +77,41 @@ export const copy = {
 
   tryLive: {
     heading: ["Try it", "live"],
-    body: "Call now and describe a home repair in Hindi or Hinglish.",
+    body: "Talk to the real Suvidha agent from your browser, in Hindi or Hinglish. Your WhatsApp messages appear on the phone here, and demo workers send you their rates.",
+    start: "Start a call",
+    starting: "Connecting…",
+    again: "Try another job",
+    hangUp: "Hang up",
+    phoneLabel: "Your phone, in this demo",
+    hint: "Allow the microphone, then describe the job. For example: “Kitchen ka nal leak ho raha hai, kal shaam tak chahiye. Address Civil Lines, Roorkee.”",
+    idle: "Your WhatsApp messages from Suvidha will appear here",
+    waiting: "Call ended. Your WhatsApp summary arrives in a few seconds…",
+    before: "Start a call. When you hang up, your job card appears here; then demo workers are called and their rates arrive on the phone.",
+    during: "Listening. The job card is built when you hang up.",
+    building: "Building your job card from the call…",
+    note: "Demo workers stand in for real ones, so nobody’s phone rings. On a real job Suvidha calls real workers, as in the replay below.",
+    status: {
+      draft: "A detail is missing. Answer the question on the phone.",
+      confirmed: "Calling demo workers in {time}",
+      inviting: "Calling demo workers…",
+      quotes_in: "Rates are on your phone. Pick a worker.",
+      awaiting_payment: "Open the link on the phone to pay the booking fee (a demo page, no real money).",
+      booked: "Booked. That is the whole flow.",
+      no_workers: "No demo worker for this trade. Try a plumber, electrician or carpenter job.",
+      cancelled: "Request cancelled.",
+      done: "Job done.",
+    },
+    errors: {
+      limit: "Today’s 50 live calls are used up. Watch the real job below, or come back tomorrow.",
+      busy: "Both live lines are busy. Try again in a minute, or watch the real job below.",
+      mic: "Suvidha needs your microphone to hear you. Allow it in the browser and try again.",
+      closed: "The live line couldn’t start just now. Try again in a minute.",
+    },
   },
 
   listen: {
-    heading: ["Hear a", "real call"],
-    body: "Listen to a job being registered, from the first hello to the job card.",
-    title: "Recording of a job being registered on a Suvidha call",
-    empty: "Recording coming soon",
+    heading: ["Watch a", "real job"],
+    body: "A real customer in Roorkee and a real plumber, from the first hello to a booked worker. Turn sound on to hear both calls.",
   },
 
 
@@ -222,7 +249,7 @@ export const copy = {
   footer: {
     links: {
       webApp: "Try the app",
-      listen: "Hear a real call",
+      listen: "Watch a real job",
       pitch: "Pitch video",
       github: "GitHub",
       call: "Call {PHONE_NUMBER}",
