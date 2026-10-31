@@ -9,7 +9,7 @@ import type { ListMessage, WhatsAppClient } from "../../src/clients/whatsapp.ts"
 import type { Ctx } from "../../src/core/context.ts";
 import { expirePayments } from "../../src/core/bookings.ts";
 import { suvidhaCancels } from "../../src/core/cancellations.ts";
-import { answerSandboxCalls, demoFeed, demoReply, startDemo } from "../../src/core/demo.ts";
+import { answerSandboxCalls, demoFeed, demoPhoto, demoReply, startDemo } from "../../src/core/demo.ts";
 import { expireQuoteCalls, startDueInvites } from "../../src/core/quotes.ts";
 import { migrate } from "../../src/db/migrate.ts";
 import { seed } from "../../src/db/seed.ts";
@@ -628,7 +628,10 @@ describe("the website demo", () => {
     expect(JSON.stringify(feed.messages[0]!.body)).toContain("Suvidha request");
     await demoReply(ctx, started.phone, { text: "Gate number 2 se aana" });
 
-    clock = new Date(clock.getTime() + 61_000);
+    // A photo starts the worker calls at once, as it does on WhatsApp.
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70]);
+    expect(await demoPhoto(ctx, started.phone, { bytes: jpeg, mimeType: "image/jpeg" })).toBe("saved");
+    expect(uploads.some((u) => u.startsWith(`${feed.job!.ref}/`))).toBe(true);
     await startDueInvites(ctx);
     for (let round = 0; round < 3; round++) {
       clock = new Date(clock.getTime() + 60_000);
@@ -639,6 +642,7 @@ describe("the website demo", () => {
     feed = await demoFeed(ctx, started.phone, 0);
     expect(feed.quotes.map((q) => q.status)).toEqual(["answered", "answered", "answered"]);
     expect(feed.messages.map((m) => m.kind)).toEqual(expect.arrayContaining(["sent", "list"]));
+    expect(feed.messages.some((m) => (m.body as { photo?: boolean }).photo)).toBe(true);
     const quoted = await sql`select w.phone from quotes q join workers w on w.id = q.worker_id join jobs j on j.id = q.job_id where j.ref = ${feed.job!.ref}`;
     expect(quoted.every((q) => q.phone.startsWith("+9100"))).toBe(true);
     expect(calls.slice(callsBefore).some((c) => c.to.startsWith("+9100"))).toBe(false);

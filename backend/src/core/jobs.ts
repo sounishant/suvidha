@@ -89,7 +89,7 @@ async function locate(ctx: Ctx, address: string | null) {
   });
 }
 
-const OPEN_STATUSES: JobStatus[] = ["draft", "confirmed", "inviting", "quotes_in", "awaiting_payment", "booked"];
+export const OPEN_STATUSES: JobStatus[] = ["draft", "confirmed", "inviting", "quotes_in", "awaiting_payment", "booked"];
 
 // Built once per intake call from Bolna's extraction; the caller's confirmed read-back is the source of truth.
 export async function jobFromCall(ctx: Ctx, call: { executionId: string; phone: string; callerRef: string | null; extraction: unknown }) {

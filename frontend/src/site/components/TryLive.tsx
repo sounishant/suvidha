@@ -3,6 +3,7 @@
 import type { BolnaWebCall } from "@bolna/web-call";
 import { useEffect, useRef, useState } from "react";
 import { CallScreen, Chat, Phone, type Bubble } from "@/site/components/demo/Phone";
+import { shrinkPhoto } from "@/lib/shrink-photo";
 import { copy } from "@/site/content/copy";
 
 type Message = { id: number; kind: string; body: Record<string, unknown> };
@@ -19,9 +20,9 @@ const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAE
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const time = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
-function toBubble(m: Message): Bubble {
+function toBubble(m: Message, photoUrl: string | null): Bubble {
   const b = m.body;
-  if (m.kind === "sent") return { id: m.id, from: "person", text: String(b.text) };
+  if (m.kind === "sent") return { id: m.id, from: "person", text: String(b.text), photo: Boolean(b.photo), image: b.photo ? (photoUrl ?? undefined) : undefined };
   if (m.kind === "image") return { id: m.id, from: "suvidha", text: String(b.caption), photo: true };
   if (m.kind === "buttons") return { id: m.id, from: "suvidha", text: String(b.text), buttons: b.buttons as Bubble["buttons"] };
   if (m.kind === "list") {
@@ -50,6 +51,9 @@ export function TryLive({ api }: { api: string }) {
   const [feed, setFeed] = useState<Feed>({ messages: [], job: null, quotes: [] });
   const [draft, setDraft] = useState("");
   const [now, setNow] = useState(0);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [sendingPhoto, setSendingPhoto] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
   const call = useRef<BolnaWebCall | null>(null);
   const speaker = useRef<HTMLAudioElement>(null);
   const after = useRef(0);
@@ -128,6 +132,21 @@ export function TryLive({ api }: { api: string }) {
     await fetch(`${api}/demo/${token}/reply`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   };
 
+  const sendPhoto = async (file: File | undefined) => {
+    if (!file || !token) return;
+    setSendingPhoto(true);
+    setProblem("");
+    try {
+      const photo = await shrinkPhoto(file).catch(() => file);
+      const res = await fetch(`${api}/demo/${token}/photo`, { method: "POST", headers: { "content-type": photo.type }, body: photo });
+      if (res.ok) setPhotoUrl(URL.createObjectURL(photo));
+      else setProblem(res.status === 409 ? t.errors.photoEarly : t.errors.photo);
+    } catch {
+      setProblem(t.errors.photo);
+    }
+    setSendingPhoto(false);
+  };
+
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     const text = draft.trim();
@@ -137,7 +156,7 @@ export function TryLive({ api }: { api: string }) {
   };
 
   const { job, quotes } = feed;
-  const bubbles = feed.messages.map(toBubble);
+  const bubbles = feed.messages.map((m) => toBubble(m, photoUrl));
 
   return (
     <div className="grid items-start gap-8 lg:grid-cols-[1fr_1.15fr]">
@@ -150,6 +169,20 @@ export function TryLive({ api }: { api: string }) {
             <Chat bubbles={bubbles} onChoose={(id, title) => void reply({ choice: id, label: title })} empty={phase === "after" ? t.waiting : t.idle} />
             {token && (
               <form onSubmit={send} className="flex gap-2 bg-[#f0f2f5] p-2">
+                <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => void sendPhoto(e.target.files?.[0]).finally(() => (e.target.value = ""))} />
+                <button
+                  type="button"
+                  aria-label={t.sendPhoto}
+                  title={t.sendPhoto}
+                  disabled={!job || sendingPhoto}
+                  onClick={() => picker.current?.click()}
+                  className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#54656f] hover:bg-white disabled:cursor-default disabled:opacity-40"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-2 [stroke-linecap:round] [stroke-linejoin:round]">
+                    <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+                    <circle cx="12" cy="13" r="3.5" />
+                  </svg>
+                </button>
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}

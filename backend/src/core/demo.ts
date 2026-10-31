@@ -1,8 +1,12 @@
 import { randomInt } from "node:crypto";
+import type { Media } from "../clients/whatsapp.ts";
+import { whatsappText } from "../messages.ts";
 import { recordCallStatus } from "./calls.ts";
 import type { Ctx } from "./context.ts";
+import { photoForCustomer } from "./customer-app.ts";
+import { OPEN_STATUSES } from "./jobs.ts";
 import { lookupCustomer } from "./lookup.ts";
-import { SANDBOX_PREFIX } from "./phone.ts";
+import { SANDBOX_PREFIX, toWhatsApp } from "./phone.ts";
 import { istDayStart } from "./time.ts";
 import { handleWhatsApp } from "./whatsapp-events.ts";
 
@@ -56,6 +60,20 @@ export async function demoReply(ctx: Ctx, phone: string, reply: DemoReply) {
 }
 
 // What a demo worker charges: a typical Roorkee rate for the trade, a little lower or higher per worker.
+// A photo from the website's phone takes the web app's path, then reads back as WhatsApp would.
+export async function demoPhoto(ctx: Ctx, phone: string, media: Media) {
+  const [job] = await ctx.sql<{ ref: string; language: string }[]>`
+    select j.ref, j.language from jobs j join customers c on c.id = j.customer_id
+    where c.phone = ${phone} and j.status = any(${OPEN_STATUSES}) order by j.created_at desc limit 1`;
+  if (!job) return "not_open" as const;
+  const result = await photoForCustomer(ctx, phone, job.ref, media);
+  if (result === "saved") {
+    await ctx.sql`insert into demo_messages (phone, kind, body) values (${phone}, 'sent', ${ctx.sql.json({ text: "Photo", photo: true })})`;
+    await ctx.whatsapp.sendText(toWhatsApp(phone), whatsappText(job.language, "photo_received"));
+  }
+  return result;
+}
+
 const BASE_PRICE: Record<string, number> = { plumber: 350, electrician: 300, carpenter: 450 };
 const MARKUP = [0.9, 1, 1.2];
 const ARRIVAL_MINUTES = [40, 25, 90];
