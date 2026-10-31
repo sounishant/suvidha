@@ -11,13 +11,13 @@ export default function LoginPage() {
       <section className="flex flex-col bg-muted px-5 py-6 sm:px-10">
         <Logo />
         <div className="mx-auto my-auto w-full max-w-sm py-12">
-          <h1 className="text-4xl font-semibold tracking-[-0.035em]">Login kijiye</h1>
-          <p className="mt-3 text-lg text-muted-foreground">Apni booking, kaarigar ka code aur daam, sab ek jagah.</p>
+          <h1 className="text-4xl font-semibold tracking-[-0.035em]">Shuru kijiye</h1>
+          <p className="mt-3 text-lg text-muted-foreground">Login ya naya account, dono isi se. Booking, daam aur kaarigar ka code, sab ek jagah.</p>
           <div className="mt-8 rounded-2xl border bg-white p-6 sm:p-7">
             <LoginForm />
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
-            Pehli baar? Aapka account pehli call se banta hai.{" "}
+            Naye hain? Number aur code se account apne aap ban jayega. Seedha booking chahiye?{" "}
             <a href="tel:+910000000000" className="font-medium text-primary">98XXX XXXXX</a> pe call kijiye.
           </p>
         </div>

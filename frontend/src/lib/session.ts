@@ -30,6 +30,12 @@ export const requireCustomer = cache(async () => {
   return { token, phone: data.phone };
 });
 
+export const customerProfile = cache(async () => {
+  const { token } = await requireCustomer();
+  const { data } = await backend<{ profile: { phone: string; name: string | null } }>("/customer/profile", { token });
+  return data.profile;
+});
+
 export async function endSession() {
   const token = await sessionToken();
   if (token) await backend("/auth/logout", { method: "POST", token });

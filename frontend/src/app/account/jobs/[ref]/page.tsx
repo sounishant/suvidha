@@ -32,8 +32,8 @@ async function Job({ params, searchParams }: Pick<PageProps<"/account/jobs/[ref]
 
   return (
     <div className="mt-2 grid gap-6">
-      <Link href="/account" className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary">
-        <ArrowLeft className="size-4" aria-hidden="true" /> Saare kaam
+      <Link href="/account/bookings" className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary">
+        <ArrowLeft className="size-4" aria-hidden="true" /> Bookings
       </Link>
 
       <header className="grid gap-4 rounded-2xl border bg-white p-5 sm:p-6">

@@ -24,11 +24,11 @@ export async function sendCode(_prev: LoginState, form: FormData): Promise<Login
 export async function verifyCode(_prev: LoginState, form: FormData): Promise<LoginState> {
   const phone = String(form.get("phone") ?? "");
   const code = String(form.get("code") ?? "").replace(/\D/g, "");
-  const { data } = await backend<{ ok: boolean; token?: string; error?: string }>("/auth/verify", {
+  const { data } = await backend<{ ok: boolean; token?: string; needsName?: boolean; error?: string }>("/auth/verify", {
     method: "POST",
     body: { phone, role: "customer", code },
   });
   if (!data.ok || !data.token) return { step: "code", phone, error: ERRORS[data.error ?? ""] ?? SOMETHING_WRONG };
   await saveSession(data.token);
-  redirect("/account");
+  redirect(data.needsName ? "/welcome" : "/account");
 }
