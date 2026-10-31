@@ -117,7 +117,6 @@ async function callWorker(ctx: Ctx, job: JobRow, quote: { id: string; ref: strin
       agentId: ctx.workerLine.agentId,
       from: ctx.workerLine.number,
       to: w.phone,
-      language: lang,
       // Every prompt variable is sent, empty when unused; job_* repeat them under the names the current prompt uses.
       userData: {
         call_type: "quote", offer_ref: quote.ref, worker_name: w.name, user_name: w.name,

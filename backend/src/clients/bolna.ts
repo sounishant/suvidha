@@ -5,7 +5,6 @@ export type CallRequest = {
   agentId: string;
   from: string;
   to: string;
-  language: string;
   userData: Record<string, string>;
 };
 
@@ -22,7 +21,7 @@ export function bolnaApi(apiKey: string, fetchFn: typeof fetch = fetch): BolnaCl
           agent_id: req.agentId,
           recipient_phone_number: req.to,
           from_phone_number: req.from,
-          agent_data: { language: req.language },
+          // No language: the agent opens in its default and follows the worker, as it does with customers.
           user_data: req.userData,
         }),
       });
