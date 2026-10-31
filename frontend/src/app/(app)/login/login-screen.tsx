@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { LoginPhone } from "@/components/login-phone";
 import { Logo } from "@/components/logo";
 import { CALL } from "@/lib/contact";
 import type { Role } from "./actions";
@@ -36,21 +36,11 @@ export function LoginScreen({ role }: { role: Role }) {
           )}
         </div>
       </section>
-      <section className="relative hidden overflow-hidden bg-primary lg:block">
-        <Image
-          src="/img/electrician.jpg"
-          alt="An electrician smiling as he fixes the wiring of a switchboard"
-          fill
-          priority
-          sizes="55vw"
-          className="object-cover object-[40%_70%] opacity-90 mix-blend-screen grayscale contrast-110"
-        />
-        <div className="absolute bottom-8 left-8 right-8 rounded-2xl bg-accent-foreground/95 p-7 text-white">
-          <p className="max-w-md text-3xl font-semibold leading-tight tracking-[-0.03em]">
-            {role === "customer" ? "Every home repair, one call away." : "Work nearby, at your price."}
-          </p>
-          <p className="mt-3 text-sm text-white/80">Photo: Fredericknoronha, CC BY-SA 4.0, Wikimedia Commons</p>
-        </div>
+      <section className="hidden flex-col items-center justify-center gap-8 bg-primary px-10 py-12 lg:flex">
+        <LoginPhone role={role} />
+        <p className="max-w-md text-center text-3xl font-semibold leading-tight tracking-[-0.03em] text-white">
+          {role === "customer" ? "Every home repair, one call away." : "Work nearby, at your price."}
+        </p>
       </section>
     </main>
   );
