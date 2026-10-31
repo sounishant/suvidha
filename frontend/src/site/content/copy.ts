@@ -84,6 +84,7 @@ export const copy = {
     starting: "Connecting…",
     again: "Try another job",
     hangUp: "Hang up",
+    sendPhoto: "Send a photo of the job",
     phoneLabel: "Your phone, in this demo",
     hint: "Allow the microphone, then describe the job. For example: “Kitchen ka nal leak ho raha hai, kal shaam tak chahiye. Address Civil Lines, Roorkee.”",
     idle: "Your WhatsApp messages from Suvidha will appear here",
@@ -94,7 +95,7 @@ export const copy = {
     note: "Demo workers stand in for real ones, so nobody’s phone rings. On a real job Suvidha calls real workers, as in the replay below.",
     status: {
       draft: "A detail is missing. Answer the question on the phone.",
-      confirmed: "Calling demo workers in {time}",
+      confirmed: "Calling demo workers in {time}. Send a photo to start now.",
       inviting: "Calling demo workers…",
       quotes_in: "Rates are on your phone. Pick a worker.",
       awaiting_payment: "Open the link on the phone to pay the booking fee (a demo page, no real money).",
@@ -108,6 +109,8 @@ export const copy = {
       busy: "Both live lines are busy. Try again in a minute, or watch the real job below.",
       mic: "Suvidha needs your microphone to hear you. Allow it in the browser and try again.",
       closed: "The live line couldn’t start just now. Try again in a minute.",
+      photo: "The photo didn’t go through. Try a JPEG or PNG under 5 MB.",
+      photoEarly: "Finish the call first. Once your request is on the phone, you can add a photo.",
     },
   },
 

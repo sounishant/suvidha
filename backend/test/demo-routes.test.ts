@@ -32,4 +32,12 @@ describe("website demo routes", () => {
     expect((await post(`/${token}/reply`, {})).status).toBe(400);
     expect(app.calls.find((c) => c.name === "demoReply")?.input).toEqual({ phone: "+910012345678", reply: { choice: "book:AB12", label: "Choose worker" } });
   });
+
+  it("take a photo only as an image, for the visitor's number", async () => {
+    const { token } = (await (await post("/start")).json()) as { token: string };
+    const send = (type: string) => fetch(`${app.url}/demo/${token}/photo`, { method: "POST", headers: { "content-type": type }, body: new Uint8Array([0xff, 0xd8, 0xff]) });
+    expect((await send("image/jpeg")).status).toBe(200);
+    expect((await send("text/plain")).status).toBe(400);
+    expect(app.calls.find((c) => c.name === "demoPhoto")?.input).toEqual({ phone: "+910012345678", mimeType: "image/jpeg" });
+  });
 });

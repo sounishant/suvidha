@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import express, { Router, type RequestHandler } from "express";
 import { z } from "zod";
+import { MAX_PHOTO_BYTES, PHOTO_TYPES } from "../clients/whatsapp.ts";
 import { sameSecret } from "../http/auth.ts";
 import type { Services } from "../services.ts";
 
@@ -53,6 +54,14 @@ export function demoRouter({ secret, services, log }: Deps) {
     if (!reply.success) return void res.sendStatus(400);
     await services.demoReply(res.locals.phone as string, reply.data);
     res.json({ ok: true });
+  });
+
+  router.post("/:token/photo", visitor, express.raw({ type: PHOTO_TYPES, limit: MAX_PHOTO_BYTES }), async (req, res) => {
+    if (!Buffer.isBuffer(req.body)) return void res.status(400).json({ ok: false, error: "bad_photo" });
+    const media = { bytes: new Uint8Array(req.body), mimeType: req.get("content-type")!.split(";")[0]!.trim() };
+    const result = await services.demoPhoto(res.locals.phone as string, media);
+    const status = { saved: 200, bad_photo: 400, not_open: 409, not_stored: 503 }[result];
+    res.status(status).json(result === "saved" ? { ok: true } : { ok: false, error: result });
   });
 
   return router;

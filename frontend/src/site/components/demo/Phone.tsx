@@ -5,6 +5,8 @@ export type Bubble = {
   from: "suvidha" | "person";
   text: string;
   photo?: boolean;
+  // A preview of a photo the visitor sent from this browser.
+  image?: string;
   buttons?: { id: string; title: string }[];
   list?: { button: string; rows: { id: string; title: string; description?: string }[] };
 };
@@ -61,7 +63,11 @@ export function Chat({ bubbles, onChoose, empty, note }: ChatProps) {
         {bubbles.map((b) => (
           <div key={b.id} className={`flex ${b.from === "person" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] rounded-lg px-3 py-2 shadow-[0_1px_0.5px_rgb(0_0_0/0.13)] ${b.from === "person" ? "bg-[#d9fdd3]" : "bg-white"}`}>
-              {b.photo && (
+              {b.photo && b.image && (
+                // eslint-disable-next-line @next/next/no-img-element -- a local blob preview, not a page image
+                <img src={b.image} alt="Your photo of the job" className="mb-1.5 max-h-40 rounded-md" />
+              )}
+              {b.photo && !b.image && (
                 <div className="mb-1.5 flex h-24 min-w-36 items-center justify-center rounded-md px-3 bg-[#d1d7db] text-[0.8rem] text-[#54656f]">
                   Photo of the job
                 </div>

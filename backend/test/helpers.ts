@@ -74,6 +74,7 @@ export function stubServices() {
     demoStart: async () => ({ ok: true as const, phone: "+910012345678", session: { run_id: "web-1" } }),
     demoFeed: record("demoFeed", { messages: [], job: null, quotes: [] }),
     demoReply: async (phone: string, reply: unknown) => void calls.push({ name: "demoReply", input: { phone, reply } }),
+    demoPhoto: async (phone: string, media: { mimeType: string }) => (calls.push({ name: "demoPhoto", input: { phone, mimeType: media.mimeType } }), "saved" as const),
     payBooking: record("payBooking", "expired" as const),
   };
   return { services, calls };

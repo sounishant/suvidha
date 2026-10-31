@@ -231,8 +231,12 @@ const SIGNATURES: Record<string, (b: Uint8Array) => boolean> = {
 
 // The bytes must really be the photo type they claim, since workers open the stored file.
 export async function photoForJob(ctx: Ctx, session: Session, ref: string, media: Media) {
+  return photoForCustomer(ctx, session.phone, ref, media);
+}
+
+export async function photoForCustomer(ctx: Ctx, phone: string, ref: string, media: Media) {
   if (!PHOTO_TYPES.includes(media.mimeType) || media.bytes.byteLength > MAX_PHOTO_BYTES || !SIGNATURES[media.mimeType]!(media.bytes)) return "bad_photo";
-  const photo = await addAppPhoto(ctx, session.phone, ref, media);
+  const photo = await addAppPhoto(ctx, phone, ref, media);
   if (!photo) return "not_open";
   if (!photo.path) return "not_stored";
   if (photo.status === "inviting" || photo.status === "quotes_in") await forwardPhoto(ctx, photo.jobId);
