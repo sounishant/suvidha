@@ -1,15 +1,14 @@
-import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { createApp, type AppDeps } from "../src/app.ts";
+import type { AppDeps } from "../src/app.ts";
+import { startApp } from "./helpers.ts";
 
 let close: (() => void) | undefined;
 afterEach(() => close?.());
 
-async function getHealth(deps: AppDeps) {
-  const server = createApp(deps).listen(0);
-  close = () => server.close();
-  const { port } = server.address() as AddressInfo;
-  const res = await fetch(`http://127.0.0.1:${port}/health`);
+async function getHealth(deps: Partial<AppDeps>) {
+  const app = startApp(deps);
+  close = app.close;
+  const res = await fetch(`${app.url}/health`);
   return { status: res.status, body: await res.json() };
 }
 
