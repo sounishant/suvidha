@@ -95,9 +95,9 @@ describe("web app login and customer data", () => {
     expect(reply).toMatchObject({ ok: true, needsName: true });
 
     const session = (await services.session(reply.ok ? reply.token : ""))!;
-    expect(await services.customerProfile(session)).toEqual({ phone: NEW, name: null });
+    expect(await services.customerProfile(session)).toEqual({ phone: NEW, name: null, credit: 0 });
     await services.setCustomerName(session, "Kavita");
-    expect(await services.customerProfile(session)).toEqual({ phone: NEW, name: "Kavita" });
+    expect(await services.customerProfile(session)).toEqual({ phone: NEW, name: "Kavita", credit: 0 });
     expect(await services.customerJobs(session)).toEqual([]);
   });
 

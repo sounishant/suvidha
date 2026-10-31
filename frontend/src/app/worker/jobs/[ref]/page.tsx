@@ -4,30 +4,34 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft, Check, CircleCheckBig, Clock, MapPin, Navigation, TriangleAlert, UserRound } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/confirm-action";
+import { JobPhoto } from "@/components/job-photo";
 import { CallCustomer } from "@/components/worker/call-customer";
 import { StepPanel } from "@/components/worker/step-panel";
 import { TRADE, rupees } from "@/lib/job-text";
 import { workerHome } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { STAGE, WORKER_STEPS, stepIndex } from "@/lib/worker-text";
+import { cantCome } from "../../actions";
 
 export const metadata: Metadata = { title: "Current job · suvidha" };
 
-export default function WorkerJobPage({ params }: PageProps<"/worker/jobs/[ref]">) {
+export default function WorkerJobPage({ params, searchParams }: PageProps<"/worker/jobs/[ref]">) {
   return (
     <div className="mx-auto grid max-w-xl gap-6">
       <Link href="/worker" className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary">
         <ArrowLeft className="size-4" aria-hidden="true" /> Jobs
       </Link>
       <Suspense fallback={<div className="h-96 rounded-2xl border bg-white" aria-busy="true" aria-label="Loading job" />}>
-        <Job params={params} />
+        <Job params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function Job({ params }: Pick<PageProps<"/worker/jobs/[ref]">, "params">) {
+async function Job({ params, searchParams }: Pick<PageProps<"/worker/jobs/[ref]">, "params" | "searchParams">) {
   const { ref } = await params;
+  const { cancel } = await searchParams;
   const home = await workerHome();
   const job = home.active.find((j) => j.jobRef === ref);
 
@@ -68,10 +72,21 @@ async function Job({ params }: Pick<PageProps<"/worker/jobs/[ref]">, "params">) 
         </ol>
       </header>
 
+      {cancel === "failed" && (
+        <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive">
+          This booking couldn’t be cancelled. Please call the suvidha team.
+        </p>
+      )}
+
       <section aria-labelledby="next" className="grid gap-4 rounded-2xl border-2 border-primary bg-white p-5 sm:p-6">
         <h2 id="next" className="text-lg font-semibold">What to do now</h2>
         <p className="-mt-2 text-muted-foreground">{STAGE[job.stage].next}</p>
         <StepPanel job={job} />
+        {job.stage === "booked" && (
+          <p className="text-sm text-muted-foreground">
+            If you haven’t set out 30 minutes after your arrival time, the customer can cancel, and other workers get called first for new jobs for 2 days.
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="details" className="grid gap-4 rounded-2xl border bg-white p-5 sm:p-6">
@@ -86,10 +101,14 @@ async function Job({ params }: Pick<PageProps<"/worker/jobs/[ref]">, "params">) 
               <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{job.safetyNote}
             </li>
           )}
+          {job.notes.map((n, i) => (
+            <li key={i} className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2"><span className="font-medium">Customer added:</span> {n}</li>
+          ))}
           {job.price !== null && (
             <li className="text-muted-foreground">Your price: <span className="font-medium text-foreground">{rupees(job.price)}</span></li>
           )}
         </ul>
+        {job.photoUrl && <JobPhoto url={job.photoUrl} alt={`Customer’s photo of the job: ${job.title}`} />}
         <div className="grid gap-3 sm:grid-cols-2">
           <CallCustomer number={job.callNumber} />
           {maps && (
@@ -99,6 +118,12 @@ async function Job({ params }: Pick<PageProps<"/worker/jobs/[ref]">, "params">) 
           )}
         </div>
       </section>
+
+      {(job.stage === "booked" || job.stage === "on_the_way") && (
+        <ConfirmAction label="Can’t come" confirmLabel="Yes, cancel booking" action={cantCome.bind(null, job.jobRef)}>
+          <p>The booking is cancelled and the customer gets their booking fee back, plus ₹25 credit from suvidha.</p>
+        </ConfirmAction>
+      )}
     </>
   );
 }

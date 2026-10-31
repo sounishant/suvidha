@@ -38,12 +38,16 @@ export type Booking = {
   rating: number | null;
   verified: boolean;
   eta: string | null;
-  stage: "booked" | "on_the_way" | "working" | "done" | "closed";
+  stage: "booked" | "on_the_way" | "working" | "done" | "closed" | "cancelled";
   startCode: string | null;
   finishCode: string | null;
   fixed: boolean | null;
   finalPrice: number | null;
 };
+
+// What cancelling now would mean for the customer's money.
+export type CancelTerms = { booked: boolean; worker: string | null; cashBack: number; creditBack: number; apology: number; travelPay: number };
+export type CancelCause = "customer_before_trip" | "customer_after_trip" | "no_show" | "worker" | "suvidha";
 
 export type JobDetail = JobSummary & {
   problem: string | null;
@@ -51,12 +55,19 @@ export type JobDetail = JobSummary & {
   material: string | null;
   safetyNote: string | null;
   budget: number | null;
+  priorities: string[];
+  notes: string[];
+  photoUrl: string | null;
+  question: { field: string; text: string } | null;
+  canCancel: CancelTerms | null;
+  cancelled: { by: CancelCause | null; worker: string | null; refund: number; credit: number } | null;
   quotes: Quote[];
-  payment: { amount: number; url: string } | null;
+  payment: { fee: number; credit: number; amount: number; url: string } | null;
   booking: Booking | null;
 };
 
-type Init = { token?: string; method?: "GET" | "POST"; body?: object };
+// A Blob body (a photo) goes as raw bytes with its own type; anything else as JSON.
+type Init = { token?: string; method?: "GET" | "POST"; body?: object | Blob };
 
 // Every call goes through the Next.js server; the browser never sees the app token or talks to the backend.
 export async function backend<T>(path: string, { token, method = "GET", body }: Init = {}): Promise<{ status: number; data: T }> {
@@ -64,10 +75,10 @@ export async function backend<T>(path: string, { token, method = "GET", body }: 
     method,
     headers: {
       "x-app-token": process.env.APP_API_TOKEN!,
-      "content-type": "application/json",
+      "content-type": body instanceof Blob ? body.type : "application/json",
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body instanceof Blob ? body : body ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
   return { status: res.status, data: (await res.json()) as T };
@@ -85,6 +96,8 @@ export type Invite = {
   locality: string | null;
   material: string | null;
   safetyNote: string | null;
+  photoUrl: string | null;
+  notes: string[];
   when: string;
   distanceKm: number | null;
   state: "open" | "sent" | "closed";
@@ -100,6 +113,8 @@ export type ActiveJob = {
   customer: string | null;
   callNumber: string;
   safetyNote: string | null;
+  photoUrl: string | null;
+  notes: string[];
   when: string;
   eta: string | null;
   stage: "booked" | "on_the_way" | "working" | "done";
@@ -107,9 +122,11 @@ export type ActiveJob = {
 };
 
 export type WorkerHome = {
-  profile: { name: string; trades: string[]; verified: boolean; rating: number | null; online: boolean };
+  // Set while a missed booking puts the worker at the back of the call list.
+  profile: { name: string; trades: string[]; verified: boolean; rating: number | null; online: boolean; calledLastUntil: string | null };
   invites: Invite[];
   active: ActiveJob[];
-  earnings: { jobs: number; total: number; monthJobs: number; monthTotal: number };
+  earnings: { jobs: number; total: number; monthJobs: number; monthTotal: number; travelTotal: number; travelMonth: number };
+  travel: { jobRef: string; title: string; amount: number; paidAt: string }[];
   recent: { jobRef: string; trade: string; title: string; locality: string | null; closedAt: string; price: number | null }[];
 };

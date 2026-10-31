@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { Sql, TransactionSql } from "postgres";
+import type { Media } from "../clients/whatsapp.ts";
 import { label, whatsappText, whenLabel } from "../messages.ts";
 import { customerCard, inferUrgency, missingFields, toMaterial, toPriorities, type RequiredField } from "./card.ts";
 import { toTrade, type Trade } from "./catalogue.ts";
@@ -194,11 +196,13 @@ async function askNext(ctx: Ctx, job: Pick<JobRow, "id" | "phone" | "language" |
   await logEvent(ctx.sql, job.id, "followup_sent", "system", { field });
 }
 
-// A reply to the one question we asked on WhatsApp. Returns false when no question was waiting.
-export async function answerFollowup(ctx: Ctx, phone: string, text: string) {
+// A reply to the one question we asked. Returns false when no question was waiting.
+// WhatsApp replies go to the newest job; the app names the job with `ref`.
+export async function answerFollowup(ctx: Ctx, phone: string, text: string, ref: string | null = null) {
   const [job] = await ctx.sql<{ id: string; pending_question: RequiredField; problem: string | null }[]>`
     select j.id, j.pending_question, j.problem from jobs j join customers c on c.id = j.customer_id
     where c.phone = ${phone} and j.status = 'draft' and j.pending_question is not null
+      ${ref === null ? ctx.sql`` : ctx.sql`and j.ref = ${ref}`}
     order by j.created_at desc limit 1`;
   if (!job) return false;
 
@@ -238,10 +242,11 @@ export async function answerFollowup(ctx: Ctx, phone: string, text: string) {
 }
 
 // Free text after the card is complete: kept on the job and passed to the workers already called.
-export async function noteCustomerChange(ctx: Ctx, phone: string, text: string) {
+export async function noteCustomerChange(ctx: Ctx, phone: string, text: string, ref: string | null = null) {
   const [job] = await ctx.sql<{ id: string }[]>`
     select j.id from jobs j join customers c on c.id = j.customer_id
     where c.phone = ${phone} and j.status in ('confirmed', 'inviting', 'quotes_in', 'awaiting_payment')
+      ${ref === null ? ctx.sql`` : ctx.sql`and j.ref = ${ref}`}
     order by j.created_at desc limit 1`;
   if (!job) return false;
   await ctx.sql`update jobs set customer_notes = array_append(customer_notes, ${text}), updated_at = now() where id = ${job.id}`;
@@ -271,6 +276,35 @@ export async function addPhoto(ctx: Ctx, phone: string, mediaId: string) {
   // Worker calls wait for the photo only until it arrives.
   if (job.status === "confirmed") await ctx.sql`update jobs set next_action_at = ${ctx.now()} where id = ${job.id} and status = 'confirmed'`;
   return { jobId: job.id, status: job.status, path };
+}
+
+// The app already holds the bytes, so it stores first and swaps the job's photo only once storage has it.
+export async function addAppPhoto(ctx: Ctx, phone: string, ref: string, media: Media) {
+  const [job] = await ctx.sql<{ id: string; ref: string; status: JobStatus }[]>`
+    select j.id, j.ref, j.status from jobs j join customers c on c.id = j.customer_id
+    where c.phone = ${phone} and j.ref = ${ref} and j.status = any(${OPEN_STATUSES})`;
+  if (!job) return null;
+  const photoId = `app_${randomUUID()}`;
+  const path = `${job.ref}/${photoId}.${PHOTO_EXT[media.mimeType]}`;
+  const stored = await ctx.storage.upload(path, media.bytes, media.mimeType).catch((err: Error) => {
+    ctx.log(`photo for job ${job.ref} not stored: ${err.message}`);
+    return false;
+  });
+  if (!stored) return { jobId: job.id, status: job.status, path: null };
+  await ctx.sql`update jobs set photo_media_id = ${photoId}, photo_url = ${path}, updated_at = now() where id = ${job.id}`;
+  if (job.status === "confirmed") await ctx.sql`update jobs set next_action_at = ${ctx.now()} where id = ${job.id} and status = 'confirmed'`;
+  return { jobId: job.id, status: job.status, path };
+}
+
+const PHOTO_LINK_SEC = 3600;
+
+// Signed links expire, so each reader asks for a fresh one.
+export async function photoLink(ctx: Ctx, path: string | null) {
+  if (!path) return null;
+  return ctx.storage.signedUrl(path, PHOTO_LINK_SEC).catch((err: Error) => {
+    ctx.log(`photo link for ${path} failed: ${err.message}`);
+    return null;
+  });
 }
 
 const PHOTO_EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };

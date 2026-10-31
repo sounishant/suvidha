@@ -39,3 +39,41 @@ export async function saveName(next: "/account" | null, _prev: NameState, form: 
   if (next) redirect(next);
   return { error: null, saved: true };
 }
+
+export type JobFormState = { error: string | null; done: string | null };
+
+// One box for both: the backend treats it as the answer when a question is waiting, otherwise as a note for the workers.
+export async function sendJobMessage(jobRef: string, _prev: JobFormState, form: FormData): Promise<JobFormState> {
+  const text = String(form.get("text") ?? "").trim();
+  if (!text) return { error: "Please write something first.", done: null };
+  if (text.length > 500) return { error: "Keep it under 500 letters.", done: null };
+  const { token } = await requireCustomer();
+  const { data } = await backend<{ ok: boolean; kind?: "answered" | "noted" }>(`/customer/jobs/${encodeURIComponent(jobRef)}/message`, { method: "POST", token, body: { text } });
+  if (!data.ok) return { error: "This job can’t take changes any more. Please call us.", done: null };
+  revalidatePath(`/account/jobs/${jobRef}`);
+  return { error: null, done: data.kind === "answered" ? "Thanks, got it." : "Sent to the workers." };
+}
+
+const PHOTO_ERRORS: Record<string, string> = {
+  bad_photo: "That file isn’t a photo we can use. Please choose a JPG or PNG photo.",
+  not_open: "This job can’t take a photo any more.",
+  not_stored: "We couldn’t save the photo just now. Please send it on WhatsApp instead.",
+};
+
+export async function uploadJobPhoto(jobRef: string, _prev: JobFormState, form: FormData): Promise<JobFormState> {
+  const photo = form.get("photo");
+  if (!(photo instanceof Blob) || photo.size === 0) return { error: "Please choose a photo.", done: null };
+  if (photo.size > 5 * 1024 * 1024) return { error: "This photo is too big. Please choose a smaller one.", done: null };
+  const { token } = await requireCustomer();
+  const { data } = await backend<{ ok: boolean; error?: string }>(`/customer/jobs/${encodeURIComponent(jobRef)}/photo`, { method: "POST", token, body: photo });
+  if (!data.ok) return { error: PHOTO_ERRORS[data.error ?? ""] ?? "Something went wrong. Please try again in a little while.", done: null };
+  revalidatePath(`/account/jobs/${jobRef}`);
+  return { error: null, done: "Photo added. Workers will see it." };
+}
+
+export async function cancelJob(jobRef: string) {
+  const { token } = await requireCustomer();
+  const { data } = await backend<{ ok: boolean }>(`/customer/jobs/${encodeURIComponent(jobRef)}/cancel`, { method: "POST", token });
+  revalidatePath("/account", "layout");
+  redirect(`/account/jobs/${encodeURIComponent(jobRef)}${data.ok ? "" : "?cancel=failed"}`);
+}

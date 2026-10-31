@@ -36,7 +36,7 @@ export const requireWorker = requireRole("worker", "/login/worker");
 
 export const customerProfile = cache(async () => {
   const { token } = await requireCustomer();
-  const { data } = await backend<{ profile: { phone: string; name: string | null } }>("/customer/profile", { token });
+  const { data } = await backend<{ profile: { phone: string; name: string | null; credit: number } }>("/customer/profile", { token });
   return data.profile;
 });
 

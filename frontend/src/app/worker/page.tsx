@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BadgeCheck, ChevronRight, Clock, MapPin, TriangleAlert } from "lucide-react";
+import { BadgeCheck, Camera, ChevronRight, Clock, MapPin, MessageSquareText, TriangleAlert } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import type { ActiveJob, Invite } from "@/lib/api";
 import { TRADE, rupees } from "@/lib/job-text";
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { JOB_MATERIAL, STAGE, myQuoteText } from "@/lib/worker-text";
 
 export const metadata: Metadata = { title: "Jobs · suvidha" };
+
+const UNTIL = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 export default function WorkerHomePage() {
   return (
@@ -37,6 +39,13 @@ async function Home() {
           This month: {home.earnings.monthJobs} {home.earnings.monthJobs === 1 ? "job" : "jobs"} · <span className="font-medium text-foreground">{rupees(home.earnings.monthTotal)}</span> earned
         </p>
       </header>
+
+      {home.profile.calledLastUntil && (
+        <p role="status" className="flex items-start gap-2 rounded-2xl bg-[color-mix(in_oklab,var(--sun)_22%,white)] p-4">
+          <TriangleAlert className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+          You missed a booking, so other workers get called first for new jobs until {UNTIL.format(new Date(home.profile.calledLastUntil))}.
+        </p>
+      )}
 
       {home.active.length > 0 && (
         <section aria-labelledby="active" className="grid gap-3">
@@ -125,7 +134,13 @@ function InviteCard({ invite }: { invite: Invite }) {
         </span>
         <span className="inline-flex items-center gap-1.5"><Clock className="size-4 text-primary" aria-hidden="true" />{invite.when}</span>
         {invite.material && <span className="text-muted-foreground">{JOB_MATERIAL[invite.material] ?? invite.material}</span>}
+        {invite.photoUrl && <span className="inline-flex items-center gap-1.5 text-primary"><Camera className="size-4" aria-hidden="true" />Photo</span>}
       </div>
+      {invite.notes.length > 0 && (
+        <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+          <MessageSquareText className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />Customer added: {invite.notes.at(-1)}
+        </p>
+      )}
       {invite.safetyNote && (
         <p className="flex items-start gap-2 rounded-lg bg-[color-mix(in_oklab,var(--sun)_18%,white)] px-3 py-2 text-sm">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{invite.safetyNote}

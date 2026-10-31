@@ -5,12 +5,10 @@ import type { WorkerQuote } from "./card.ts";
 import type { Ctx } from "./context.ts";
 import { logEvent } from "./events.ts";
 import { bookingFee, NO_SHOW_CALL_LAST_DAYS } from "./fees.ts";
-import { jobById, jobLabel, moveJob, recordSent, whenText, type JobRow } from "./jobs.ts";
+import { jobById, jobLabel, moveJob, photoLink, recordSent, whenText, type JobRow } from "./jobs.ts";
 import { toWhatsApp } from "./phone.ts";
 import { rankQuotes, type Measure, type RankedQuote } from "./ranking.ts";
 import { withFreshRef } from "./refs.ts";
-
-const PHOTO_LINK_SEC = 3600;
 
 type Candidate = { id: string; name: string; phone: string; language: string; distanceKm: number | null; skilled: boolean; noShow: boolean };
 
@@ -76,14 +74,6 @@ export async function advance(ctx: Ctx, jobId: string) {
   for (const call of plan.calls) await callWorker(ctx, plan.job!, call.quote, call.worker);
 }
 
-async function photoLink(ctx: Ctx, job: JobRow) {
-  if (!job.photo_url) return null;
-  return ctx.storage.signedUrl(job.photo_url, PHOTO_LINK_SEC).catch((err: Error) => {
-    ctx.log(`photo link for job ${job.ref} failed: ${err.message}`);
-    return null;
-  });
-}
-
 // What a worker may see before quoting: area only, never the address, phone or budget.
 function workerJobCard(job: JobRow, w: Pick<Candidate, "language" | "distanceKm">, now: Date) {
   const lang = w.language;
@@ -102,7 +92,7 @@ async function callWorker(ctx: Ctx, job: JobRow, quote: { id: string; ref: strin
   const now = ctx.now();
   try {
     const card = workerJobCard(job, w, now);
-    const link = await photoLink(ctx, job);
+    const link = await photoLink(ctx, job.photo_url);
     if (link) await ctx.whatsapp.sendImage(toWhatsApp(w.phone), link, card);
     else await ctx.whatsapp.sendText(toWhatsApp(w.phone), card);
   } catch (err) {
@@ -325,7 +315,7 @@ function shortlist(job: JobRow, ranked: RankedQuote[], byId: Map<string, QuoteRo
 // A photo that arrives after calls started goes straight to every worker already contacted.
 export async function forwardPhoto(ctx: Ctx, jobId: string) {
   const job = await jobById(ctx.sql, jobId);
-  const link = await photoLink(ctx, job);
+  const link = await photoLink(ctx, job.photo_url);
   if (!link) return;
   const workers = await ctx.sql<{ phone: string; language: string }[]>`
     select w.phone, w.language from quotes q join workers w on w.id = q.worker_id

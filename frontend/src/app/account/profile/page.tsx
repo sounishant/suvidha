@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LogOut, MessageCircle, Phone } from "lucide-react";
+import { LogOut, MessageCircle, Phone, Wallet } from "lucide-react";
 import { NameForm } from "@/components/name-form";
 import { Button } from "@/components/ui/button";
 import { CALL, whatsappLink } from "@/lib/contact";
+import { rupees } from "@/lib/job-text";
 import { customerProfile } from "@/lib/session";
 import { logout } from "../actions";
 
@@ -50,6 +51,13 @@ async function Details() {
         </div>
       </div>
       <NameForm next={null} defaultName={profile.name ?? ""} submitLabel="Save name" />
+      <div className="flex items-start gap-3 rounded-xl bg-muted p-4">
+        <Wallet className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
+        <div>
+          <p className="font-medium">suvidha credit: <span className="tabular-nums">{rupees(profile.credit)}</span></p>
+          <p className="text-sm text-muted-foreground">Credit from refunds or apologies is used first on your next booking fee. It never expires.</p>
+        </div>
+      </div>
     </section>
   );
 }

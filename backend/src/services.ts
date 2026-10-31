@@ -1,11 +1,12 @@
+import type { Media } from "./clients/whatsapp.ts";
 import { endSession, sessionFor, startLogin, verifyLogin, type Role, type Session } from "./core/app-login.ts";
 import { payBooking, paymentView, type PaymentView } from "./core/bookings.ts";
 import { recordCallStatus, type CallStatus } from "./core/calls.ts";
 import type { Ctx, FnReply } from "./core/context.ts";
-import { bookForCustomer, customerJob, customerJobs, customerProfile, setCustomerName } from "./core/customer-app.ts";
+import { bookForCustomer, cancelForCustomer, customerJob, customerJobs, customerProfile, messageForJob, photoForJob, setCustomerName } from "./core/customer-app.ts";
 import { lookupCustomer, lookupWorker } from "./core/lookup.ts";
 import { handleWhatsApp } from "./core/whatsapp-events.ts";
-import { finishJob, markDone, quoteFromApp, setOnline, startTrip, startWork, workerHome, type AppQuote, type StepReply } from "./core/worker-app.ts";
+import { cancelForWorker, finishJob, markDone, quoteFromApp, setOnline, startTrip, startWork, workerHome, type AppQuote, type StepReply } from "./core/worker-app.ts";
 import { registerWorker, type NewWorker } from "./core/workers.ts";
 
 type Caller = { phone: string; executionId: string | null };
@@ -26,6 +27,10 @@ export type Services = {
   bookForCustomer(session: Session, jobRef: string, quoteRef: string): ReturnType<typeof bookForCustomer>;
   customerProfile(session: Session): ReturnType<typeof customerProfile>;
   setCustomerName(session: Session, name: string): Promise<void>;
+  messageForJob(session: Session, ref: string, text: string): ReturnType<typeof messageForJob>;
+  photoForJob(session: Session, ref: string, media: Media): ReturnType<typeof photoForJob>;
+  cancelForCustomer(session: Session, ref: string): Promise<boolean>;
+  cancelForWorker(session: Session, ref: string): Promise<boolean>;
   workerHome(session: Session): ReturnType<typeof workerHome>;
   setOnline(session: Session, online: boolean): Promise<void>;
   quoteFromApp(session: Session, quoteRef: string, quote: AppQuote): Promise<boolean>;
@@ -56,6 +61,10 @@ export function coreServices(ctx: Ctx): Services {
     bookForCustomer: (session, jobRef, quoteRef) => bookForCustomer(ctx, session, jobRef, quoteRef),
     customerProfile: (session) => customerProfile(ctx, session),
     setCustomerName: (session, name) => setCustomerName(ctx, session, name),
+    messageForJob: (session, ref, text) => messageForJob(ctx, session, ref, text),
+    photoForJob: (session, ref, media) => photoForJob(ctx, session, ref, media),
+    cancelForCustomer: (session, ref) => cancelForCustomer(ctx, session, ref),
+    cancelForWorker: (session, ref) => cancelForWorker(ctx, session, ref),
     workerHome: (session) => workerHome(ctx, session),
     setOnline: (session, online) => setOnline(ctx, session, online),
     quoteFromApp: (session, quoteRef, quote) => quoteFromApp(ctx, session, quoteRef, quote),

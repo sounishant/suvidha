@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft, Clock, MapPin, TriangleAlert } from "lucide-react";
+import { JobPhoto } from "@/components/job-photo";
 import { QuoteForm } from "@/components/worker/quote-form";
 import { TRADE } from "@/lib/job-text";
 import { workerHome } from "@/lib/session";
@@ -47,6 +48,13 @@ async function Quote({ params }: Pick<PageProps<"/worker/quote/[ref]">, "params"
           <p className="flex items-start gap-2 rounded-lg bg-[color-mix(in_oklab,var(--sun)_18%,white)] px-3 py-2 text-sm">
             <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{invite.safetyNote}
           </p>
+        )}
+        {invite.photoUrl && <JobPhoto url={invite.photoUrl} alt={`Customer’s photo of the job: ${invite.title}`} />}
+        {invite.notes.length > 0 && (
+          <div className="grid gap-2">
+            <h2 className="text-sm font-medium text-muted-foreground">Customer added</h2>
+            <ul className="grid gap-2">{invite.notes.map((n, i) => <li key={i} className="rounded-lg bg-muted px-3 py-2">{n}</li>)}</ul>
+          </div>
         )}
         <p className="text-sm text-muted-foreground">You get the full address and the customer’s name once you’re booked.</p>
       </section>

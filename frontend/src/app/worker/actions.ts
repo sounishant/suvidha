@@ -64,3 +64,10 @@ export async function bookingStep(jobRef: string, kind: "trip" | "start" | "done
   revalidatePath("/worker", "layout");
   return { error: null };
 }
+
+export async function cantCome(jobRef: string) {
+  const { token } = await requireWorker();
+  const { data } = await backend<{ ok: boolean }>(`/worker/jobs/${encodeURIComponent(jobRef)}/cancel`, { method: "POST", token });
+  revalidatePath("/worker", "layout");
+  redirect(data.ok ? "/worker" : `/worker/jobs/${encodeURIComponent(jobRef)}?cancel=failed`);
+}

@@ -1,4 +1,5 @@
 import express, { Router, type RequestHandler } from "express";
+import { MAX_PHOTO_BYTES, PHOTO_TYPES } from "../clients/whatsapp.ts";
 import { z } from "zod";
 import type { Session } from "../core/app-login.ts";
 import { requireHeader } from "../http/auth.ts";
@@ -12,6 +13,7 @@ const Start = z.object({ phone: Phone, role: Role });
 const Verify = z.object({ phone: Phone, role: Role, code: z.string().trim().max(10) });
 const Book = z.object({ quoteRef: z.string().trim().min(1).max(20) });
 const Profile = z.object({ name: z.string().trim().min(1).max(60) });
+const Message = z.object({ text: z.string().trim().min(1).max(500) });
 const Rupees = z.number().int().min(0).max(100_000);
 const Quote = z
   .object({
@@ -99,6 +101,27 @@ export function appRouter({ appToken, services }: Deps) {
     res.status(chosen ? 200 : 409).json(chosen ? { ok: true, payUrl: chosen.payUrl } : { ok: false, error: "not_bookable" });
   });
 
+  router.post("/customer/jobs/:ref/message", signedIn, customer, async (req, res) => {
+    const input = Message.safeParse(req.body);
+    if (!input.success) return res.status(400).json({ ok: false, error: "bad_request" });
+    const kind = await services.messageForJob(session(res), String(req.params.ref), input.data.text);
+    res.status(kind ? 200 : 409).json(kind ? { ok: true, kind } : { ok: false, error: "not_open" });
+  });
+
+  const photoBody = express.raw({ type: PHOTO_TYPES, limit: MAX_PHOTO_BYTES });
+  router.post("/customer/jobs/:ref/photo", signedIn, customer, photoBody, async (req, res) => {
+    if (!Buffer.isBuffer(req.body)) return res.status(400).json({ ok: false, error: "bad_photo" });
+    const media = { bytes: new Uint8Array(req.body), mimeType: req.get("content-type")!.split(";")[0]!.trim() };
+    const result = await services.photoForJob(session(res), String(req.params.ref), media);
+    const status = { saved: 200, bad_photo: 400, not_open: 409, not_stored: 503 }[result];
+    res.status(status).json(result === "saved" ? { ok: true } : { ok: false, error: result });
+  });
+
+  router.post("/customer/jobs/:ref/cancel", signedIn, customer, async (req, res) => {
+    const cancelled = await services.cancelForCustomer(session(res), String(req.params.ref));
+    res.status(cancelled ? 200 : 409).json(cancelled ? { ok: true } : { ok: false, error: "not_cancellable" });
+  });
+
   router.get("/worker/home", signedIn, worker, async (_req, res) => {
     res.json({ ok: true, ...(await services.workerHome(session(res))) });
   });
@@ -128,6 +151,11 @@ export function appRouter({ appToken, services }: Deps) {
   router.post("/worker/jobs/:ref/start", signedIn, worker, step("start"));
   router.post("/worker/jobs/:ref/done", signedIn, worker, step("done"));
   router.post("/worker/jobs/:ref/finish", signedIn, worker, step("finish"));
+
+  router.post("/worker/jobs/:ref/cancel", signedIn, worker, async (req, res) => {
+    const cancelled = await services.cancelForWorker(session(res), String(req.params.ref));
+    res.status(cancelled ? 200 : 409).json(cancelled ? { ok: true } : { ok: false, error: "not_cancellable" });
+  });
 
   return router;
 }

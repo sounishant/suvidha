@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ChevronRight, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ChevronRight, MapPin, MessageCircle, Phone, Wallet } from "lucide-react";
 import { OpenJobCard } from "@/components/open-job-card";
 import { ServiceIcon } from "@/components/service-icon";
 import { buttonVariants } from "@/components/ui/button";
 import { backend, type JobSummary } from "@/lib/api";
 import { CALL, SERVICES, whatsappLink } from "@/lib/contact";
-import { STATUS, TRADE } from "@/lib/job-text";
+import { STATUS, TRADE, rupees } from "@/lib/job-text";
 import { customerProfile, requireCustomer } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -91,9 +91,16 @@ async function Greeting() {
           <h1 id="hello" className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Hello{first ? `, ${first}` : ""}</h1>
           <p className="mt-1 text-muted-foreground">What needs fixing today?</p>
         </div>
-        <p className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-sm font-medium">
-          <MapPin className="size-4 text-primary" aria-hidden="true" /> Roorkee
-        </p>
+        <div className="flex flex-wrap gap-2">
+          {profile.credit > 0 && (
+            <Link href="/account/profile" className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-secondary px-3 py-1.5 text-sm font-medium text-accent-foreground">
+              <Wallet className="size-4 text-primary" aria-hidden="true" /> {rupees(profile.credit)} credit
+            </Link>
+          )}
+          <p className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-sm font-medium">
+            <MapPin className="size-4 text-primary" aria-hidden="true" /> Roorkee
+          </p>
+        </div>
       </div>
       {open.length > 0 && (
         <div className="grid gap-3">

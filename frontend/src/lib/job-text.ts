@@ -3,7 +3,7 @@ import type { JobStatus, Quote } from "./api";
 type StatusText = { label: string; line: string; open: boolean };
 
 export const STATUS: Record<JobStatus, StatusText> = {
-  draft: { label: "Details needed", line: "Answer the question we sent on WhatsApp, then we’ll find workers.", open: true },
+  draft: { label: "Details needed", line: "Answer one question below (or on WhatsApp), then we’ll find workers.", open: true },
   confirmed: { label: "Job card ready", line: "Your job card is ready. We’ll start calling workers within a minute.", open: true },
   inviting: { label: "Finding workers", line: "We’re getting prices from nearby workers and will tell you as soon as three are in.", open: true },
   quotes_in: { label: "Prices are in", line: "See the prices below and choose the worker you like.", open: true },
